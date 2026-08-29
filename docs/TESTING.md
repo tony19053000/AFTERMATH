@@ -56,17 +56,20 @@ Components render from real API fixtures · no mocked or hard-coded data path ex
 
 ## 3. Commands
 
-To be filled in as they become real (P1). Planned:
+Real as of P1. Note: `python3 -m venv` is broken on this machine (missing `ensurepip`), so `uv` is used for environment setup.
 
 ```bash
-pip install -e "backend[dev]"
-pytest backend/tests                      # default: offline, deterministic
-pytest backend/tests -m "not slow"        # fast loop
-pytest backend/tests -m live              # opt-in, requires GEMINI_API_KEY
-pytest --cov=aftermath backend/tests      # coverage
+uv venv --python 3.12 .venv
+uv pip install --python .venv/bin/python -e "backend[dev]"
+
+.venv/bin/python -m pytest backend/tests -q       # default: offline, deterministic
+.venv/bin/python -m pytest backend/tests -m live  # opt-in, requires GEMINI_API_KEY
+.venv/bin/python -m pytest --cov=aftermath backend/tests
 ```
 
-Markers: `slow` · `live` · `replay` · `benchmark` · `security`.
+Markers: `slow` · `live` · `replay` · `benchmark` · `security`. `addopts` excludes `live` by default, so the suite never needs a network or a key.
+
+**Current:** 64 passed, ~0.45s.
 
 ---
 
