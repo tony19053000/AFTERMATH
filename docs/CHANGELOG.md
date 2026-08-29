@@ -92,6 +92,51 @@ All 5 clean scenarios still PASS with no injection recorded. Ground truth verifi
 
 ---
 
+## 2026-08-30 — P4 Replay engine ⚠ (the highest-risk phase)
+
+**WHAT WE TRIED.** A deterministic replay engine, counterfactual interventions, an N-trial experiment runner, and effect-size ranking. P4 existed to answer one question: **is byte-identical strict replay actually achievable?** If not, the project's premise needed rethinking.
+
+### Experiment 1 — is strict replay byte-identical?
+
+**Result: YES, via record/replay — and NO via live re-execution.** Both halves matter.
+
+| configuration | byte-identical? |
+|---|---|
+| 5 clean scenarios, re-executed | ✅ all 5 |
+| 5 incidents, fault reapplied | ✅ all 5, ground truth stable |
+| mock provider (narration on) | ✅ |
+| **live model, run twice, temperature 0.0** | ❌ **diverged** |
+| **live model recorded, then replayed from cassette** | ✅ hash-equal, no provider instance |
+
+The live divergence is the finding worth keeping. At `temperature=0.0`, two runs produced different narration — *"I would be happy to help you process a refund…"* vs *"I can certainly help you look into a refund…"*. **Temperature 0 is not a determinism guarantee.** The P1 record/replay machinery is what makes strict replay real, now verified against a real model rather than only the mock. Recorded as D-015.
+
+### Experiment 2 — do counterfactuals actually discriminate?
+
+The controls, run across all 5 incidents (5 trials each, 26 experiments total):
+
+| incident | intervention at true cause | effect | unrelated steps tested | max effect | localized |
+|---|---|---:|---:|---:|---|
+| I-001 | replace_tool_result @s0007 | **+1.00** | 4 | +0.00 | ✅ s0007 |
+| I-002 | skip_tool_call @s0019 | **+1.00** | 7 | +0.00 | ✅ s0019 |
+| I-003 | replace_tool_result @s0009 | **+1.00** | 4 | +0.00 | ✅ s0009 |
+| I-004 | replace_tool_result @s0007 | **+1.00** | 2 | +0.00 | ✅ s0007 |
+| I-005 | replace_tool_result @s0007 | **+1.00** | 4 | +0.00 | ✅ s0007 |
+
+**5/5 correct localization; perfect separation** — +1.00 at the true cause, +0.00 at every one of the 21 unrelated steps. The negative control is the load-bearing half: an engine that "fixed" everything would score identically on the positive control alone and be worthless.
+
+**RESULT / EVIDENCE.** `pytest backend/tests -q` → **322 passed** in ~1.0s, offline.
+
+**Two honest caveats.**
+
+1. **The perfect separation is partly a property of the current agent.** Control flow is deterministic Python, so failure rates are 0.0 or 1.0 with no variance and effect sizes are maximally clean. Real agents will produce intermediate rates. `TrialSummary.distinct_traces` tracks trace variance so this transition is visible rather than silent, and the rates are measured rather than assumed for exactly that reason.
+2. **The corrective interventions in P4's controls are written by us, not proposed by a model.** They use only the trace and a clean run — never the injector's internals — so they are genuine counterfactuals rather than a privileged undo. But whether an LLM *proposes* the right intervention unaided is untested until P5, and it is the harder problem.
+
+**A guard became real.** `test_import_boundaries` had inspected empty stubs since P1. `replay/` is now 493 lines, and the guard was verified to fail when a model import is deliberately introduced, then restored.
+
+**DECISION: KEEP.** The premise holds: counterfactual replay produces measurable causal evidence.
+
+---
+
 ## Experiment log
 
 *(Empty. First entries expected in P4 — replay determinism findings — and P7 — baseline comparison.)*

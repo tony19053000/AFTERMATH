@@ -2,7 +2,9 @@
 
 **From Agent Incident to Verified Immunity.**
 
-> **Project status: P3 of 11 complete (32%).** The monitored agent, trace layer, provider abstraction, and a 5-incident benchmark with injector-authored ground truth are built and tested (260 tests, all offline). The replay engine — the heart of the system — is P4 and not yet built. There are **no benchmark results yet**, and this README will not carry any number that does not come from a stored experiment artifact.
+> **Project status: P4 of 11 complete (46%).** The replay engine works. Byte-identical strict replay is verified, and counterfactual experiments localize the true cause in **5/5 seed incidents** with clean separation (+1.00 effect at the true cause, +0.00 at all 21 unrelated steps tested). 322 tests, all offline.
+>
+> Not yet built: the forensic agents (P5) — so far the interventions are written by us, not proposed by a model. There is **no baseline comparison yet** (P7), and this README will not carry any number that does not come from a stored experiment artifact.
 
 ---
 
@@ -36,14 +38,18 @@ LLMs hypothesize, design experiments, propose repairs, and critique. Determinist
 
 ### What that looks like
 
+Real output from incident I-001 (stale policy served at step 7), 5 trials each:
+
 ```
-Original trajectory        →  18/20 failures
-Intervene at step 7        →   0/20 failures     ← evidence
-Intervene at step 14       →  12/20 failures
-Intervene at step 21       →  18/20 failures     ← negative control
+Original trajectory                →  5/5 failures
+Correct the value at step s0007    →  0/5 failures     effect +1.00  ← evidence
+Correct the value at step s0003    →  5/5 failures     effect  0.00  ← negative control
+Correct the value at step s0005    →  5/5 failures     effect  0.00  ← negative control
+Correct the value at step s0009    →  5/5 failures     effect  0.00  ← negative control
+Correct the value at step s0012    →  5/5 failures     effect  0.00  ← negative control
 ```
 
-That is a measurement, not an opinion. It is the difference between AFTERMATH and an LLM log summarizer.
+That is a measurement, not an opinion. The negative controls are the load-bearing half: an engine that "fixed" everything would look identical on the first line alone and be worthless.
 
 ## What AFTERMATH is not
 
@@ -78,7 +84,7 @@ The backend runs fully offline on a deterministic mock provider — no API key n
 uv venv --python 3.12 .venv
 uv pip install --python .venv/bin/python -e "backend[dev]"
 
-.venv/bin/python -m pytest backend/tests -q                 # 260 passed
+.venv/bin/python -m pytest backend/tests -q                 # 322 passed
 .venv/bin/python -m uvicorn aftermath.api.app:app --port 8000
 curl -s localhost:8000/health
 ```

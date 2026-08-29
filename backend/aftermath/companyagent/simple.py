@@ -18,6 +18,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from aftermath.config import DEFAULT_MODEL
 from aftermath.companyagent.base import AgentRun
 from aftermath.companyagent.scenarios import RequestKind, Scenario
 from aftermath.companyagent.tools import READ_ONLY_TOOLS, ToolOutcome, call_tool
@@ -41,9 +42,11 @@ class SimpleCustomerOpsAgent:
         *,
         narrate: bool = True,
         injector: Injector | NullInjector | None = None,
+        model: str = DEFAULT_MODEL,
     ) -> None:
         self._provider = provider
         self._narrate = narrate and provider is not None
+        self._model = model
         # One code path whether or not a fault applies: the agent must not behave
         # differently merely because it is being studied.
         self._injector = injector or NullInjector()
@@ -61,7 +64,7 @@ class SimpleCustomerOpsAgent:
             return
         assert self._provider is not None
         request = LLMRequest(
-            model="narration",
+            model=self._model,
             prompt=thought,
             tag=f"{self.version}:{step_tag}",
         )
@@ -92,8 +95,16 @@ class SimpleCustomerOpsAgent:
         snapshot_ref = None if tool in READ_ONLY_TOOLS else f"w{len(collector.steps):04d}"
         call_step = collector.tool_call(tool, arguments, call_id, snapshot_ref)
 
-        outcome = call_tool(world, tool, arguments)
-        outcome = self._injector.transform_outcome(tool, arguments, outcome, world)
+        # A pre-execution override can prevent the call entirely. Post-hoc result
+        # rewriting cannot: by then a state mutation has already happened, and a
+        # counterfactual that asks "what if this action had not occurred" needs
+        # the action genuinely not to occur.
+        overridden = self._injector.override_call(tool, arguments)
+        if overridden is not None:
+            outcome = overridden
+        else:
+            outcome = call_tool(world, tool, arguments)
+            outcome = self._injector.transform_outcome(tool, arguments, outcome, world)
 
         result_step = collector.tool_result(tool, call_id, outcome)
         for mutation in outcome.mutations:
@@ -124,7 +135,8 @@ class SimpleCustomerOpsAgent:
         call_id = collector.next_call_id()
         snapshot_ref = None if tool in READ_ONLY_TOOLS else f"w{len(collector.steps):04d}"
         call_step = collector.tool_call(tool, arguments, call_id, snapshot_ref)
-        outcome = call_tool(world, tool, arguments)
+        overridden = self._injector.override_call(tool, arguments)
+        outcome = overridden if overridden is not None else call_tool(world, tool, arguments)
         collector.tool_result(tool, call_id, outcome)
         for mutation in outcome.mutations:
             collector.state_mutation(mutation)

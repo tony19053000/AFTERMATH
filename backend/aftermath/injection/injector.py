@@ -93,6 +93,10 @@ class Injector:
 
     # ---- hooks ---------------------------------------------------------------
 
+    def override_call(self, tool: str, arguments: dict[str, Any]) -> ToolOutcome | None:
+        """Pre-execution hook. Faults never suppress a call; only interventions do."""
+        return None
+
     def prepare_world(self, world: World) -> World:
         """WORLD_STATE layer: perturb the environment before the run starts."""
         if self.spec.layer is not InjectionLayer.WORLD_STATE:
@@ -185,6 +189,9 @@ class NullInjector:
     spec = None
     fired = False
     true_causal_step = None
+
+    def override_call(self, tool: str, arguments: dict[str, Any]) -> ToolOutcome | None:
+        return None
 
     def prepare_world(self, world: World) -> World:
         return world

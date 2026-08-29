@@ -197,3 +197,39 @@ Both sides are set to the same model deliberately. **If they ever diverge, the b
 **Consequences.** `pytest backend/tests` passes identically with or without a `.env`, and with or without the key exported — both verified. Live coverage is a deliberate `-m live` run.
 
 **Reversible?** Yes, but reversing it re-introduces exactly the leak described above.
+
+
+---
+
+## D-014 · 2026-08-30 · "Replay" means deterministic re-execution, not playback
+
+**Decision.** The replay engine re-executes a run from fixed inputs — same scenario, same world seed, same fault, same recorded model responses — rather than stepping through a recorded trace re-emitting recorded values.
+
+**Alternatives considered.** (a) Playback: walk the stored trace and replay each recorded value; (b) deterministic re-execution; (c) process-level snapshot/restore.
+
+**Reason.** Playback cannot answer a counterfactual. After an intervention the run *must* be free to diverge — that divergence is the measurement. A playback engine would faithfully reproduce the original trace and learn nothing. (c) is far heavier than the problem requires while the monitored agent is in-process.
+
+**Consequences.** Replay fidelity depends on the run being deterministic given its inputs, which is why every nondeterministic call goes through the recording provider (D-006) and why the world uses an integer `day` rather than a clock. The word "replay" is used in this specific sense throughout the codebase and docs; it is stated in the engine's module docstring so no reader assumes playback semantics.
+
+**Reversible?** Yes, but playback would remove the ability to run counterfactuals, which is the product.
+
+---
+
+## D-015 · 2026-08-30 · Strict replay requires recorded model responses — measured, not assumed
+
+**Decision.** Byte-identical strict replay is achieved by serving model calls from a cassette. Re-executing against a live model is **not** treated as reproducible, and the engine's strict mode never calls one.
+
+**Alternatives considered.** (a) Assume `temperature=0` is deterministic enough; (b) require recorded responses; (c) abandon byte-identical replay and compare outcomes only.
+
+**Reason.** Measured directly, because P4 flagged this as the risk that could invalidate the project. Running incident I-001 twice against a live model at `temperature=0.0`:
+
+- **Not byte-identical.** Reasoning text diverged on the first narration step — "I would be happy to help you process a refund…" vs "I can certainly help you look into a refund…".
+- Recording that same run and replaying it from the cassette with **no provider instance at all** was byte-identical, hash-equal.
+
+So (a) is false: temperature 0 is not a determinism guarantee. The record/replay machinery built in P1 is what makes strict replay real, and it is now verified against a real model rather than only the mock.
+
+**Consequences.** Any experiment intended to be reproducible must run under a recorded or mock provider. A benchmark run's cassettes are part of its evidence, not an optimization. A `live`-marked test documents the divergence so the finding is not lost.
+
+**Important caveat, recorded honestly.** In these runs the *outcome* was identical across live executions even though the text was not — but only because this agent's control flow is deterministic Python and narration cannot change a decision (D-003). **That stability is a property of the current simple agent, not of the replay engine.** When the monitored agent becomes model-driven, live divergence will be able to change outcomes, and the failure rate will become a genuine statistic rather than 0.0/1.0. `TrialSummary.distinct_traces` already tracks this so the shift will be visible rather than silent.
+
+**Reversible?** No — this is a measured property of the environment, not a preference.

@@ -69,7 +69,7 @@ uv pip install --python .venv/bin/python -e "backend[dev]"
 
 Markers: `slow` · `live` · `replay` · `benchmark` · `security`. `addopts` excludes `live` by default, so the suite never needs a network or a key.
 
-**Current:** 265 passed offline (~0.65s), plus 3 `live` tests that pass against the real provider (~10s) when run deliberately.
+**Current:** 322 passed offline (~1.0s), plus 3 `live` tests that pass against the real provider (~10s) when run deliberately.
 
 **Hermeticity.** An autouse fixture isolates tests from the repository `.env` and from `GEMINI_API_KEY` (D-013). The default run behaves identically whether or not a key is present on the machine — verified both ways. `live`-marked tests opt out and are the only ones permitted to reach a network.
 
@@ -110,9 +110,14 @@ Each phase's acceptance criteria in `docs/PHASES.md` map to named tests. A phase
 | P3 | injected vs clean differential | `test_injected_and_clean_runs_of_the_same_scenario_differ` |
 | P3 | definitions validate from disk | `test_every_definition_file_parses` |
 | P3 | a fault that never fires raises | `test_an_injection_that_never_fires_raises` |
-| P4 | strict replay byte-identical | `test_strict_replay_identical` |
-| P4 | positive control | `test_intervention_at_true_cause_reduces_failure` |
-| P4 | negative control | `test_intervention_at_unrelated_step_no_effect` |
+| P4 | strict replay byte-identical | `test_clean_run_replays_byte_identically`, `test_incident_replays_byte_identically` |
+| P4 | failure rate reproduced | `test_baseline_failure_rate_matches_the_incident` |
+| P4 | positive control | `test_positive_control_intervening_at_the_true_cause_prevents_failure` |
+| P4 | negative control | `test_negative_control_unrelated_steps_have_no_effect` |
+| P4 | localization picks the true cause | `test_localization_picks_the_true_causal_step` |
+| P4 | ranking ignores confidence | `test_ranking_ignores_confidence` |
+| P4 | experiments re-runnable from artifacts | `test_artifact_round_trips_and_is_rerunnable` |
+| P4 | no model in the evidence path | `TestNoModelInTheEvidencePath` |
 | P5 | ranking follows evidence, not confidence | `test_ranking_prefers_effect_size` |
 | P6 | regression case fails unrepaired, passes repaired | `test_immunity_case_controls` |
 | P7 | identical incident set for both systems | `test_baseline_parity` |

@@ -5,7 +5,7 @@
 
 ---
 
-# Overall Completion: 32%
+# Overall Completion: 46%
 
 **Derivation.** Completion is the weighted sum of phase completion from `docs/PHASES.md`. It is never estimated by feel.
 
@@ -15,7 +15,7 @@
 | P1 Foundations | 10 | 100% | 10.0 |
 | P2 Simulated company agent | 10 | 100% | 10.0 |
 | P3 Fault injection & incidents | 8 | 100% | 8.0 |
-| P4 Replay engine ⚠ | 14 | 0% | 0.0 |
+| P4 Replay engine ⚠ | 14 | 100% | 14.0 |
 | P5 Minimal forensic pipeline (MVP) | 14 | 0% | 0.0 |
 | P6 Immunity Vault | 8 | 0% | 0.0 |
 | P7 Baseline & benchmark | 10 | 0% | 0.0 |
@@ -23,7 +23,7 @@
 | P9 Frontend | 8 | 0% | 0.0 |
 | P10 Hardening & demo | 4 | 0% | 0.0 |
 | P11 TEE vault *(optional, unweighted)* | 0 | 0% | 0.0 |
-| **Total** | **100** | | **32.0** |
+| **Total** | **100** | | **46.0** |
 
 Within a phase, % done = satisfied acceptance criteria ÷ total acceptance criteria for that phase.
 
@@ -31,11 +31,11 @@ Within a phase, % done = satisfied acceptance criteria ÷ total acceptance crite
 
 ## Current phase
 
-**P3 — Fault injection & incidents with ground truth.** Complete. All 4 acceptance criteria verified.
+**P4 — Deterministic replay engine + counterfactual interventions.** Complete. All 6 acceptance criteria verified. **The highest-risk phase passed: byte-identical strict replay works, and counterfactual evidence discriminates 5/5 with perfect separation.**
 
 ## Current objective
 
-Begin **P4 — Deterministic replay engine + counterfactual interventions**. ⚠ Highest-risk phase: if byte-identical strict replay proves impossible, the project's central premise needs rethinking, and that finding must be recorded rather than worked around.
+Begin **P5 — Minimal AFTERMATH forensic pipeline (the MVP vertical slice)**: 1 investigator, 1 counterfactual planner, 1 repair agent, 1 verifier, plus the orchestrator. This is the first phase where LLM agents enter the product.
 
 ## Completed phases
 
@@ -43,6 +43,7 @@ Begin **P4 — Deterministic replay engine + counterfactual interventions**. ⚠
 - **P1** — backend package, trace schema + content hashing, LLM provider abstraction (mock/gemini/recording), SQLite persistence + artifact store, FastAPI skeleton, 64-test pytest suite, import-boundary enforcement.
 - **P2** — seeded simulated world (versioned policies), 7 simulated tools, `CompanyAgent` adapter + custom-loop agent (D-004 resolved), trace collector, 5 clean scenarios with deterministic oracles.
 - **P3** — injection framework (tool-result, world-state, retry layers), incident definition format + loader, **5 incidents** with injector-authored ground truth, normal-case set.
+- **P4** — deterministic replay engine, counterfactual interventions, N-trial experiment runner, effect-size ranking. Byte-identical strict replay verified; 5/5 correct root-cause localization with +1.00 vs +0.00 separation.
 
 ## Active tasks
 
@@ -54,15 +55,15 @@ Begin **P4 — Deterministic replay engine + counterfactual interventions**. ⚠
 
 ## Next tasks (in order)
 
-1. **P4.1** — replay a stored trace with world-state restoration; assert byte-identical strict replay. **Do this first** — it is the make-or-break result.
-2. **P4.2** — `InterventionSpec`: replace tool result, alter world state, drop/reorder step, force policy or approval outcome.
-3. **P4.3** — N-trial experiment runner + deterministic outcome scoring against scenario oracles.
-4. **P4.4** — effect-size computation and hypothesis ranking.
-5. **P4.5** — positive control (intervene at `true_causal_step` → failure rate drops) and negative control (unrelated step → no change); experiment artifacts persisted.
+1. **P5.1** — investigator agent: read a trace, emit hypotheses bound to step ids, strict Pydantic output.
+2. **P5.2** — counterfactual planner: hypothesis → executable `InterventionSpec` (the P4 vocabulary already exists).
+3. **P5.3** — orchestrator wiring investigation → experiment → ranking, with agent output validated and malformed output handled.
+4. **P5.4** — repair agent + deterministic repair evaluation (prevention rate on the incident, false-block rate on the 5 normal cases).
+5. **P5.5** — verifier + synthesizer report citing experiment artifacts; persist the full pipeline run.
 
 ## Failing tests
 
-None. **260 passed** (`pytest backend/tests -q`, 0.63s).
+None. **322 passed** offline (`pytest backend/tests -q`, ~1.0s), plus 3 opt-in `live` tests.
 
 ## Known bugs
 
@@ -70,7 +71,9 @@ None known.
 
 ## Technical debt
 
-- `replay/`, `immunity/`, `benchmark/`, `forensics/` are still empty package stubs. The import-boundary test over them therefore passes with nothing to inspect; the detector itself is verified against synthetic violating trees, and the check becomes load-bearing in P4.
+- `immunity/`, `benchmark/`, `forensics/` are still empty package stubs. The import-boundary guard is now load-bearing for `replay/` (493 lines, verified to fail on a deliberate violation).
+- **Failure rates are 0.0 or 1.0 with zero variance**, because the agent's control flow is deterministic. Effect sizes are correspondingly clean (+1.00 / +0.00). Real agents will produce intermediate rates; `TrialSummary.distinct_traces` tracks trace variance so that shift is visible rather than silent.
+- P4's corrective interventions are written by us from the trace and a clean run, not proposed by a model. Whether an LLM proposes them unaided is untested until P5 — the harder problem.
 - The MVP agent's control flow is deterministic Python; the model narrates reasoning but does not decide. Deliberate (D-003), but it means agent-reasoning failure modes cannot be injected at the model level.
 - **The CONTEXT injection layer is taxonomy only — no kind implements it.** `calculate_refund` re-reads the customer from world state rather than using what `get_customer` returned, so altering that call's arguments changes nothing the agent decides. Revisit when the agent's data flow deepens.
 - All 5 incidents currently fail at rate 1.0 because the agent is fully deterministic. The rate is *measured*, not assumed, so it stays honest when P4 introduces resampled replay.
