@@ -1,7 +1,7 @@
 # AFTERMATH — Project Status
 
 **Last updated:** 2026-08-30
-**Last verified commit:** `c6825fb` — docs: bootstrap AFTERMATH project documentation system
+**Last verified commit:** `357ba82` — feat: P2 simulated company agent, world, and tools
 
 ---
 
@@ -100,6 +100,6 @@ None known.
 - Repository: initialized, branch `main`.
 - Remote: **`origin` → https://github.com/tony19053000/AFTERMATH.git** ✅ configured 2026-08-30.
 - Remote was empty at first push (0 refs) — no pre-existing history was overwritten.
-- `main` tracks `origin/main`; pushed and verified at `db9c9e7`.
+- `main` tracks `origin/main`; pushed and verified at `357ba82`.
 - Bootstrap commit: `c6825fb` ✅
 - Push policy: no force push, no history rewrite. Push only after a phase's Definition of Done is met.
