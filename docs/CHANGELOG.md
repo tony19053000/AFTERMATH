@@ -39,6 +39,27 @@ Self-review found three issues, all fixed before commit: dead code in the trace 
 
 ---
 
+## 2026-08-30 — P2 Simulated company agent, world, and tools
+
+**WHAT WE TRIED.** Built the monitored system: a seeded simulated world with versioned refund policies, 7 simulated tools, a trace collector, the `CompanyAgent` adapter, a minimal custom-loop agent, and 5 clean scenarios with deterministic oracles.
+
+**WHY — and the D-004 experiment.** P2 had to settle whether Google ADK backs the MVP agent. Measured rather than assumed:
+
+- `uv pip install --dry-run google-adk` resolves **37 new packages** and downgrades `websockets` 17.1 → 15.0.1.
+- More decisively, ADK runs its own orchestration loop over LLM calls, tool dispatch, and session state — exactly the layer we must intercept for byte-identical replay (D-001). Going through it would couple the project's single most important property to a third party's internals.
+
+The convenience ADK offers is precisely the part we need to own. **DECISION: custom loop; ADK not a dependency.** The `CompanyAgent` protocol keeps it addable later as a genuine framework-agnosticism demonstration. Recorded in D-004.
+
+**A second finding worth recording.** Two of the five clean scenarios were initially written against *assumed* properties of the seeded world. Inspecting the generated data showed `ORD-2000` was in-window (not out), and `ORD-2005` was delivered (not pending), so `cancel_pending_order` would have exercised an error path while appearing to pass. Both were reassigned to orders that genuinely have the intended properties. Cheap to catch here; it would have quietly corrupted P3's incident ground truth.
+
+**RESULT / EVIDENCE.** `pytest backend/tests -q` → **180 passed** in 0.54s, fully offline. All 5 clean scenarios PASS their oracles; identical seed reproduces identical trace hash and world hash across all 5. Every state mutation is traced (`test_mutations_are_all_traced` reconciles trace mutation steps against observed world deltas). Nothing outside `companyagent/` references the concrete agent class, so the adapter boundary holds.
+
+**Honest limitation.** The agent's control flow is deterministic Python; the model narrates reasoning but does not decide. Deliberate per D-003 — a model-driven agent would make determinism harder and causal ground truth ambiguous — but it means reasoning-level failure modes cannot yet be injected. P3 injects at the tool, state, context, and policy layers instead.
+
+**DECISION: KEEP.**
+
+---
+
 ## Experiment log
 
 *(Empty. First entries expected in P4 — replay determinism findings — and P7 — baseline comparison.)*

@@ -1,6 +1,8 @@
 # AFTERMATH — Architecture
 
-**Status:** Bootstrap design (2026-08-30). No code exists yet. This document must be updated to match the real codebase as it is built; a stale diagram here is treated as a defect.
+**Status:** Updated 2026-08-30, end of P2. Built: the monitored agent (world, tools, scenarios, oracles), the trace layer, the LLM provider abstraction, persistence, and the API skeleton. Not yet built: fault injection (P3), the replay engine (P4), the forensic agents (P5), the immunity vault (P6), the benchmark (P7), the frontend (P9).
+
+This document must match the real codebase; a stale diagram here is treated as a defect.
 
 ---
 
@@ -146,8 +148,11 @@ llm/recording.py record/replay wrapper for reproducibility
 
 ```
 companyagent/base.py       CompanyAgent protocol: run(scenario, seed, hooks) -> Trace
-companyagent/simple.py     MVP in-process agent (custom loop or ADK-backed)
-companyagent/adk.py        Google ADK adapter (initial convenience path)
+companyagent/simple.py     MVP in-process agent: minimal custom loop (D-004)
+companyagent/world.py      seeded simulated state; integer `day`, no wall clock
+companyagent/tools.py      the 7 simulated tools; no real side effects
+companyagent/scenarios.py  scenarios + deterministic oracles
+companyagent/adk.py        (not built) optional ADK adapter, framework-agnosticism demo
 companyagent/external.py   future: ingest a trace from an outside system
 ```
 

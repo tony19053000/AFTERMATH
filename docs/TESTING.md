@@ -1,6 +1,6 @@
 # AFTERMATH — Testing Strategy
 
-**Status:** strategy defined; no suite exists yet (arrives in P1).
+**Status:** live as of P2. 180 tests, fully offline and deterministic.
 
 ---
 
@@ -69,7 +69,7 @@ uv pip install --python .venv/bin/python -e "backend[dev]"
 
 Markers: `slow` · `live` · `replay` · `benchmark` · `security`. `addopts` excludes `live` by default, so the suite never needs a network or a key.
 
-**Current:** 64 passed, ~0.45s.
+**Current:** 180 passed, ~0.54s.
 
 ---
 
@@ -85,11 +85,21 @@ Each phase's acceptance criteria in `docs/PHASES.md` map to named tests. A phase
 
 | Phase | Criterion | Test |
 |---|---|---|
-| P1 | trace round-trips with identical hash | `test_trace_roundtrip_hash_stable` |
-| P1 | recorded provider call replays without network | `test_recording_replay_offline` |
-| P1 | deterministic layers import no LLM | `test_import_boundaries` |
-| P2 | same seed → same world | `test_world_determinism` |
-| P2 | no untraced state mutation | `test_trace_completeness` |
+| P1 | trace round-trips with identical hash | `test_roundtrip_preserves_content_and_hash` |
+| P1 | mock provider is deterministic | `test_same_request_same_response` |
+| P1 | recorded provider call replays without network | `test_replay_is_byte_identical_and_offline` |
+| P1 | replay miss refuses to go live | `test_replay_miss_raises_rather_than_going_live` |
+| P1 | schema creates; trace persists and reloads | `test_save_then_load_returns_identical_trace` |
+| P1 | `/health` returns 200 | `test_health_returns_ok` |
+| P1 | deterministic layers import no LLM | `test_deterministic_layers_do_not_import_llm` |
+| P1 | the boundary detector actually detects | `TestDetectorActuallyDetects` |
+| P2 | same seed → same world | `test_same_seed_produces_identical_world` |
+| P2 | same seed → same trace | `test_same_seed_produces_identical_trace` |
+| P2 | valid trace from a scenario run | `test_trace_is_valid_and_round_trips` |
+| P2 | no untraced state mutation | `test_mutations_are_all_traced` |
+| P2 | clean scenarios pass their oracles | `TestCleanScenariosPassTheirOracles::test_scenario_passes` |
+| P2 | agent swap touches only companyagent/ | `test_an_alternative_agent_implementation_is_accepted` |
+| P2 | oracles catch real failures (negative control) | `TestOracleIndependence` |
 | P3 | incident reproduces at stable rate | `test_incident_reproducibility` |
 | P3 | ground truth has no LLM provenance | `test_ground_truth_is_injector_authored` |
 | P4 | strict replay byte-identical | `test_strict_replay_identical` |

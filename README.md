@@ -2,7 +2,7 @@
 
 **From Agent Incident to Verified Immunity.**
 
-> ⚠️ **Project status: bootstrap (P0 of 11).** Documentation and development plan are in place; implementation has not started. There are no benchmark results yet, and this README will not carry any number that does not come from a stored experiment artifact.
+> **Project status: P2 of 11 complete (24%).** The monitored agent, simulated world, trace layer, and provider abstraction are built and tested (180 tests, all offline). The replay engine — the heart of the system — is P4 and not yet built. There are **no benchmark results yet**, and this README will not carry any number that does not come from a stored experiment artifact.
 
 ---
 
@@ -62,7 +62,7 @@ Not a log summarizer. Not an observability dashboard. Not a multi-agent chat fra
 
 ## Architecture (planned)
 
-Python · FastAPI · deterministic replay engine · SQLite · pytest · React/Next.js frontend · Gemini API and Google ADK as **initial, swappable** choices behind adapters. The monitored agent, the LLM provider, and the database are all replaceable by design — see [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
+Python · FastAPI · deterministic replay engine · SQLite · pytest · React/Next.js frontend · Gemini API as the **initial, swappable** model provider behind an adapter. The monitored agent is a minimal custom loop rather than an agent framework — deterministic replay requires controlling every nondeterministic call, and a framework's own orchestration sits exactly where that control is needed ([D-004](docs/DECISIONS.md)). The monitored agent, the LLM provider, and the database are all replaceable by design — see [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
 ## Evaluation (planned)
 
@@ -72,7 +72,33 @@ Compared against a **fair baseline**: one capable LLM, the same incidents, an eq
 
 ## Quick start
 
-Not yet available — implementation begins in P1. Setup instructions land with the backend scaffold.
+The backend runs fully offline on a deterministic mock provider — no API key needed.
+
+```bash
+uv venv --python 3.12 .venv
+uv pip install --python .venv/bin/python -e "backend[dev]"
+
+.venv/bin/python -m pytest backend/tests -q                 # 180 passed
+.venv/bin/python -m uvicorn aftermath.api.app:app --port 8000
+curl -s localhost:8000/health
+```
+
+Run a monitored scenario and inspect the trace it produces:
+
+```python
+from aftermath.companyagent.world import build_world
+from aftermath.companyagent.scenarios import get_scenario
+from aftermath.companyagent.simple import SimpleCustomerOpsAgent
+from aftermath.llm.mock import MockProvider
+
+run = SimpleCustomerOpsAgent(MockProvider()).run(
+    get_scenario("refund_in_window"), build_world(seed=1337)
+)
+print(run.trace.outcome)        # judged by a deterministic oracle, not a model
+print(run.trace.content_hash()) # identical on every re-run with the same seed
+```
+
+`uv` is used rather than `venv` because this project's dev machine lacks `ensurepip`; plain `pip install -e "backend[dev]"` works too.
 
 ## Documentation
 

@@ -48,17 +48,22 @@ Format: **ID · Date · Decision · Alternatives · Reason · Consequences · Re
 
 ---
 
-## D-004 · 2026-08-30 · Google ADK is an initial convenience, behind an adapter — **OPEN**
+## D-004 · 2026-08-30 · Minimal custom agent loop for the MVP company agent — **RESOLVED in P2**
 
-**Decision (provisional).** Google ADK may back the first company-agent implementation, but only behind the `CompanyAgent` protocol. **The final call is deferred to P2.**
+**Decision.** The MVP company agent is a minimal custom loop implemented behind the `CompanyAgent` protocol. Google ADK is **not** a dependency. An ADK adapter may be added later as a demonstration of framework-agnosticism.
 
 **Alternatives considered.** (a) Minimal custom agent loop; (b) Google ADK; (c) OpenAI Agents SDK; (d) LangGraph.
 
-**Reason.** ADK is convenient and aligned with the initial Gemini choice. However, deterministic replay (D-001) requires precise control over every nondeterministic call, and a framework's internal orchestration can obstruct that. A minimal custom loop is the lower-risk default for determinism.
+**Reason.** Two findings, measured during P2 rather than assumed:
 
-**Consequences.** P2 must evaluate whether ADK permits the required record/replay hooks. If it does not, use a custom loop and keep an ADK adapter as a demonstration of framework-agnosticism. **Resolve and update this entry during P2.**
+1. **Determinism control (decisive).** D-001 requires intercepting every nondeterministic call so replay can serve it from a record. ADK runs its own orchestration loop over LLM calls, tool dispatch, and session state. Achieving byte-identical strict replay through it would mean coupling to ADK internals — taking on framework-version risk in the single most important property the project has. A custom loop makes every nondeterministic call pass through our own `LLMProvider`, which already records and replays (verified in P1).
+2. **Dependency weight.** `uv pip install --dry-run google-adk` resolves **37 new packages** and downgrades `websockets` (17.1 → 15.0.1). That is a large surface for a component whose deliberate purpose (D-003) is to be a simple, controllable trace producer.
 
-**Reversible?** Yes — that is the entire purpose of the adapter.
+The convenience ADK offers — orchestration, tool registration, session handling — is exactly the part we need to control ourselves. It solves a problem we do not have while complicating the one we do.
+
+**Consequences.** No ADK dependency. The `CompanyAgent` protocol still isolates the choice, so an ADK-backed agent can be added under `companyagent/adk.py` without touching the forensics pipeline — and doing so would be a genuine demonstration that AFTERMATH is framework-agnostic. Documentation referring to ADK as the initial framework is updated to reflect this.
+
+**Reversible?** Yes — that is the entire purpose of the adapter. This decision changes the initial implementation, not the architecture.
 
 ---
 

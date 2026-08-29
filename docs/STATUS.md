@@ -5,7 +5,7 @@
 
 ---
 
-# Overall Completion: 14%
+# Overall Completion: 24%
 
 **Derivation.** Completion is the weighted sum of phase completion from `docs/PHASES.md`. It is never estimated by feel.
 
@@ -13,7 +13,7 @@
 |---|---:|---:|---:|
 | P0 Bootstrap & documentation | 4 | 100% | 4.0 |
 | P1 Foundations | 10 | 100% | 10.0 |
-| P2 Simulated company agent | 10 | 0% | 0.0 |
+| P2 Simulated company agent | 10 | 100% | 10.0 |
 | P3 Fault injection & incidents | 8 | 0% | 0.0 |
 | P4 Replay engine ⚠ | 14 | 0% | 0.0 |
 | P5 Minimal forensic pipeline (MVP) | 14 | 0% | 0.0 |
@@ -23,7 +23,7 @@
 | P9 Frontend | 8 | 0% | 0.0 |
 | P10 Hardening & demo | 4 | 0% | 0.0 |
 | P11 TEE vault *(optional, unweighted)* | 0 | 0% | 0.0 |
-| **Total** | **100** | | **14.0** |
+| **Total** | **100** | | **24.0** |
 
 Within a phase, % done = satisfied acceptance criteria ÷ total acceptance criteria for that phase.
 
@@ -31,16 +31,17 @@ Within a phase, % done = satisfied acceptance criteria ÷ total acceptance crite
 
 ## Current phase
 
-**P1 — Foundations.** Complete. All 6 acceptance criteria verified.
+**P2 — Simulated company agent, world, and tools.** Complete. All 5 acceptance criteria verified.
 
 ## Current objective
 
-Begin **P2 — Simulated company agent, world, and tools**: seeded simulated world, 7 simulated tools, `CompanyAgent` adapter + first implementation, trace emission, 3–5 clean scenarios with oracles.
+Begin **P3 — Fault injection & incidents with ground truth**: injection framework, incident definition format, first 3–5 incidents, normal-case set for later false-positive measurement.
 
 ## Completed phases
 
 - **P0** — documentation system, CLAUDE.md, phases, architecture, testing strategy, status/context tracking, `.gitignore`, `.env.example`.
 - **P1** — backend package, trace schema + content hashing, LLM provider abstraction (mock/gemini/recording), SQLite persistence + artifact store, FastAPI skeleton, 64-test pytest suite, import-boundary enforcement.
+- **P2** — seeded simulated world (versioned policies), 7 simulated tools, `CompanyAgent` adapter + custom-loop agent (D-004 resolved), trace collector, 5 clean scenarios with deterministic oracles.
 
 ## Active tasks
 
@@ -48,19 +49,19 @@ Begin **P2 — Simulated company agent, world, and tools**: seeded simulated wor
 
 ## Blocked tasks
 
-- **Gemini API key** — not yet configured. Not blocking: P2–P4 run entirely on the deterministic mock provider. A key in `.env` is needed before P5 runs the forensic pipeline against a real model.
+- **Gemini API key** — not yet configured. Not blocking: P3–P4 run entirely on the deterministic mock provider. A key in `.env` is needed before P5 runs the forensic pipeline against a real model.
 
 ## Next tasks (in order)
 
-1. **P2.1** — seeded simulated world (customers, orders, versioned policies, refund ledger).
-2. **P2.2** — the 7 simulated tools as pure functions over world state; no real side effects.
-3. **P2.3** — `CompanyAgent` protocol + first implementation (resolves D-004: ADK vs. custom loop).
-4. **P2.4** — trace emission hooks on every reasoning step, tool call, result, and state mutation.
-5. **P2.5** — 3–5 clean scenarios with correctness/safety oracles + determinism tests.
+1. **P3.1** — injection framework with hooks at the tool-result, world-state, context, and policy layers.
+2. **P3.2** — incident definition format + loader validating against the ground-truth schema.
+3. **P3.3** — first 3 incidents: stale policy retrieval, duplicate refund after retry, human-approval bypass.
+4. **P3.4** — normal-case set (the 5 clean scenarios) for later false-positive measurement.
+5. **P3.5** — reproducibility tests: each incident fails at a stable rate; clean runs still pass.
 
 ## Failing tests
 
-None. **64 passed** (`pytest backend/tests -q`, 0.45s).
+None. **180 passed** (`pytest backend/tests -q`, 0.54s).
 
 ## Known bugs
 
@@ -68,7 +69,8 @@ None known.
 
 ## Technical debt
 
-- `replay/`, `immunity/`, `benchmark/`, `forensics/`, `tracing/`, `injection/`, `companyagent/` are empty package stubs. The import-boundary test over them therefore passes with nothing to inspect; the detector itself is verified against synthetic violating trees, and the check becomes load-bearing in P4.
+- `replay/`, `immunity/`, `benchmark/`, `forensics/`, `injection/` are still empty package stubs. The import-boundary test over them therefore passes with nothing to inspect; the detector itself is verified against synthetic violating trees, and the check becomes load-bearing in P4.
+- The MVP agent's control flow is deterministic Python; the model narrates reasoning but does not decide. Deliberate (D-003) and documented in the module, but it means agent-reasoning failure modes cannot yet be injected at the model level — P3 injects at the tool, state, context, and policy layers instead.
 - `RecordingProvider` rewrites the whole cassette on each new response — fine at current volume, revisit if cassettes grow large.
 - Watch items: SQLite → PostgreSQL migration seam; artifact store is local filesystem only.
 
@@ -78,7 +80,7 @@ None known.
 
 ## Runtime-agent status
 
-**Not implemented.** Design only — see `docs/PRODUCT_AGENTS.md`. MVP target is 4 runtime agents (investigator, counterfactual planner, repair, verifier); the full ~16-agent swarm is P8 and contingent on measurement.
+**Not implemented** (P5). Design only — see `docs/PRODUCT_AGENTS.md`. Note: the *monitored* company agent now exists (P2), but it is the subject of forensics, not a forensic agent. MVP target is 4 runtime agents (investigator, counterfactual planner, repair, verifier); the full ~16-agent swarm is P8 and contingent on measurement.
 
 ## UI status
 
