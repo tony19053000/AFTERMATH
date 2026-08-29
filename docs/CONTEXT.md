@@ -2,14 +2,37 @@
 
 **Purpose:** if the session ends or context resets, this file alone (plus the docs it points to) must be enough to continue accurately. Written for a reader who remembers nothing.
 
-**Last updated:** 2026-08-30 — end of P2.
-**Current phase:** P2 complete → next is **P3 Fault injection & incidents with ground truth**.
+**Last updated:** 2026-08-30 — end of P3.
+**Current phase:** P3 complete → next is **P4 Deterministic replay engine** ⚠ (highest-risk phase).
 
 ---
 
 ## What was completed this cycle
 
-**P2 — the monitored system.** AFTERMATH now has something real to observe.
+**P3 — controlled failures with trustworthy ground truth.**
+
+- `injection/spec.py` — `InjectionSpec`: kind, layer, target tool, occurrence. Layers: TOOL_RESULT, WORLD_STATE, RETRY (CONTEXT is taxonomy only — see limitations).
+- `injection/injector.py` — applies the fault and **records the trace step it perturbed**. That recorded id is `true_causal_step`. Zero LLM imports.
+- `injection/incidents.py` — definition schema + loader for `data/incidents/*.json`.
+- `injection/runner.py` — runs incidents and clean cases; raises if a fault never fired.
+- `data/incidents/` — **5 incidents** across 3 layers.
+- The agent gained one injection point inside `_invoke`, so a fault can only enter where every tool call already passes.
+
+### The 5 incidents (all verified failing their declared oracle)
+
+| id | fault | layer | causal step | failing oracle |
+|---|---|---|---|---|
+| I-001 | stale policy served by the tool | tool_result | s0007 | refund_denied_outside_window |
+| I-002 | duplicate refund after retry | retry | s0019 | no_duplicate_refund |
+| I-003 | approval requirement suppressed | tool_result | s0009 | approval_required_above_limit |
+| I-004 | policy labelled with a bogus version | tool_result | s0007 | refund_within_current_policy |
+| I-005 | policy v2 missing from the world | world_state | s0007 | refund_denied_outside_window |
+
+I-001 and I-005 reach the *same* outcome by different mechanisms (corrupt tool vs. wrong environment) and are deliberately kept separate — P4/P5 must be able to tell them apart.
+
+---
+
+### Earlier: P2 — the monitored system
 
 - `companyagent/world.py` — seeded simulated world: customers, orders, **versioned** refund policies (v1 lenient / v2 strict, v2 effective from day 100), refund ledger. Time is an integer `day`, never a wall clock.
 - `companyagent/tools.py` — the 7 simulated tools. Pure over world state; **no real side effects**. `issue_simulated_refund` is deliberately *not* idempotent — the duplicate-refund incident depends on that being possible.
@@ -22,8 +45,9 @@
 
 ## What currently works
 
-- `pytest backend/tests -q` → **180 passed** in ~0.54s, fully offline.
-- All 5 clean scenarios run end to end and PASS their oracles.
+- `pytest backend/tests -q` → **260 passed** in ~0.63s, fully offline.
+- All 5 incidents reproduce their failure at rate 1.00 (measured over 20 trials each).
+- All 5 clean scenarios still PASS with no injection recorded.
 - Identical seed → identical trace content hash **and** identical world state hash, verified across all 5 scenarios.
 - Every state mutation appears in the trace; a denied refund traces zero mutations and leaves the world hash unchanged.
 - `uvicorn aftermath.api.app:app` → `/health` 200.
@@ -77,14 +101,18 @@ ORD-2008 is the only `pending` order (the sole cancellable one). ORD-2011 is cle
 ## Active assumptions
 
 - Python 3.12.3, Node 22.22.1, git 2.43, `uv` available (verified). `python3 -m venv` is broken (no `ensurepip`).
-- Gemini API key not supplied — P3 and P4 run entirely on the mock provider.
+- Gemini API key not supplied — P4 runs entirely on the mock provider; ground truth needs no provider at all.
 - Remote: `origin` → https://github.com/tony19053000/AFTERMATH.git; `main` tracks `origin/main`.
 
 ## Next recommended task
 
-**P3.1** — the injection framework, with hooks at the tool-result, world-state, context, and policy layers. Acceptance criteria are in `docs/PHASES.md` under P3.
+**P4.1 — prove byte-identical strict replay, before building anything else on top of it.**
 
-Start with **stale policy retrieval**: force `get_policy` to return v1 while v2 is effective, then run `refund_out_of_window` (ORD-2011). Under v1 the agent will refund an order it should have denied, and `refund_within_current_policy` will FAIL with "entitles 0" — a mechanism already proven by `test_oracle_catches_an_over_refund_under_stale_policy`. `true_causal_step` is the `tool_result` step for that `get_policy` call.
+This is the make-or-break result of the whole project. Take a stored trace, restore world state, re-execute with every nondeterministic call served from the record, and assert the replayed trace's `content_hash()` equals the original's. The pieces are already in place: `Trace.content_hash()` excludes wall-clock fields precisely so this comparison is meaningful, `RecordingProvider` in REPLAY mode raises rather than re-sampling, and `world_snapshot_ref` is recorded on every state-changing call.
+
+Then P4.2–P4.5: `InterventionSpec`, the N-trial runner, effect-size ranking, and the two controls that make the evidence trustworthy — intervening at `true_causal_step` must drop the failure rate, and intervening at an unrelated step must not.
+
+**If byte-identical strict replay turns out to be impossible, stop and record it in DECISIONS + CHANGELOG.** A negative result here is a real finding; quietly weakening the definition of "replay" would invalidate every experiment built on it.
 
 ## Unresolved questions (need the project owner)
 
@@ -97,7 +125,9 @@ Start with **stale policy retrieval**: force `get_policy` to return v1 while v2 
 
 - **Do not reconfigure the Claude Code development agents.** `.claude/` is set up. Those four are *development* agents; the AFTERMATH runtime agents in `docs/PRODUCT_AGENTS.md` are a different thing entirely — and so is the *monitored* company agent built in P2.
 - **Do not let an LLM decide an experimental outcome.** `tests/arch/test_import_boundaries.py` enforces this; if it starts failing, that is the alarm working.
-- That boundary test still inspects **empty** stubs (`replay/`, `immunity/`, `benchmark/`, `forensics/`, `injection/`). Its green is not yet evidence about P4's engine.
+- That boundary test still inspects **empty** stubs (`replay/`, `immunity/`, `benchmark/`, `forensics/`). Its green is not yet evidence about P4's engine — **P4 is when it finally matters.**
+- **An injection that changes nothing is not an incident.** The wrong-customer fault fired correctly and altered no outcome, because `calculate_refund` re-reads the customer from world state. It was removed rather than shipped. Check that a new fault actually flips an oracle before adding it to the benchmark.
+- `InjectionLayer.CONTEXT` is declared but unimplemented; a spec using it fails loudly via `run_incident`.
 - **Verify assumptions about the seeded world by inspecting it.** Two of five scenarios were initially assigned to orders that did not have the properties assumed; the table above is ground truth, and P3's incidents depend on getting this right.
 - **P4 (replay engine) is the highest-risk phase.** If byte-identical strict replay proves impossible, record it in DECISIONS + CHANGELOG rather than working around it quietly.
 - **No invented numbers.** Nothing may quote a benchmark result until P7 writes real artifacts.

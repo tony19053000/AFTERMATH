@@ -2,7 +2,7 @@
 
 **From Agent Incident to Verified Immunity.**
 
-> **Project status: P2 of 11 complete (24%).** The monitored agent, simulated world, trace layer, and provider abstraction are built and tested (180 tests, all offline). The replay engine — the heart of the system — is P4 and not yet built. There are **no benchmark results yet**, and this README will not carry any number that does not come from a stored experiment artifact.
+> **Project status: P3 of 11 complete (32%).** The monitored agent, trace layer, provider abstraction, and a 5-incident benchmark with injector-authored ground truth are built and tested (260 tests, all offline). The replay engine — the heart of the system — is P4 and not yet built. There are **no benchmark results yet**, and this README will not carry any number that does not come from a stored experiment artifact.
 
 ---
 
@@ -78,7 +78,7 @@ The backend runs fully offline on a deterministic mock provider — no API key n
 uv venv --python 3.12 .venv
 uv pip install --python .venv/bin/python -e "backend[dev]"
 
-.venv/bin/python -m pytest backend/tests -q                 # 180 passed
+.venv/bin/python -m pytest backend/tests -q                 # 260 passed
 .venv/bin/python -m uvicorn aftermath.api.app:app --port 8000
 curl -s localhost:8000/health
 ```

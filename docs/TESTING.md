@@ -69,7 +69,7 @@ uv pip install --python .venv/bin/python -e "backend[dev]"
 
 Markers: `slow` · `live` · `replay` · `benchmark` · `security`. `addopts` excludes `live` by default, so the suite never needs a network or a key.
 
-**Current:** 180 passed, ~0.54s.
+**Current:** 260 passed, ~0.63s.
 
 ---
 
@@ -100,8 +100,14 @@ Each phase's acceptance criteria in `docs/PHASES.md` map to named tests. A phase
 | P2 | clean scenarios pass their oracles | `TestCleanScenariosPassTheirOracles::test_scenario_passes` |
 | P2 | agent swap touches only companyagent/ | `test_an_alternative_agent_implementation_is_accepted` |
 | P2 | oracles catch real failures (negative control) | `TestOracleIndependence` |
-| P3 | incident reproduces at stable rate | `test_incident_reproducibility` |
-| P3 | ground truth has no LLM provenance | `test_ground_truth_is_injector_authored` |
+| P3 | incident reproduces at stable rate | `test_failure_rate_is_stable_and_documented` |
+| P3 | incident fails its *declared* oracle | `test_incident_fails_its_declared_oracle` |
+| P3 | ground truth has no LLM provenance | `test_injector_module_makes_no_llm_call` |
+| P3 | agent never sees ground truth | `test_agent_never_receives_the_ground_truth` |
+| P3 | clean runs still pass | `TestCleanRunsStillPass::test_clean_scenario_passes` |
+| P3 | injected vs clean differential | `test_injected_and_clean_runs_of_the_same_scenario_differ` |
+| P3 | definitions validate from disk | `test_every_definition_file_parses` |
+| P3 | a fault that never fires raises | `test_an_injection_that_never_fires_raises` |
 | P4 | strict replay byte-identical | `test_strict_replay_identical` |
 | P4 | positive control | `test_intervention_at_true_cause_reduces_failure` |
 | P4 | negative control | `test_intervention_at_unrelated_step_no_effect` |

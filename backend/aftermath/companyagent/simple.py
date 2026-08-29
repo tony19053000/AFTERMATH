@@ -23,6 +23,7 @@ from aftermath.companyagent.scenarios import RequestKind, Scenario
 from aftermath.companyagent.tools import READ_ONLY_TOOLS, ToolOutcome, call_tool
 from aftermath.companyagent.world import World
 from aftermath.core.trace import InjectionInfo
+from aftermath.injection.injector import Injector, NullInjector
 from aftermath.llm.base import LLMProvider, LLMRequest
 from aftermath.tracing.collector import TraceCollector
 
@@ -34,9 +35,18 @@ class SimpleCustomerOpsAgent:
 
     version = AGENT_VERSION
 
-    def __init__(self, provider: LLMProvider | None = None, *, narrate: bool = True) -> None:
+    def __init__(
+        self,
+        provider: LLMProvider | None = None,
+        *,
+        narrate: bool = True,
+        injector: Injector | NullInjector | None = None,
+    ) -> None:
         self._provider = provider
         self._narrate = narrate and provider is not None
+        # One code path whether or not a fault applies: the agent must not behave
+        # differently merely because it is being studied.
+        self._injector = injector or NullInjector()
 
     # ---- tracing helpers -----------------------------------------------------
 
@@ -73,15 +83,52 @@ class SimpleCustomerOpsAgent:
 
         Mutations are recorded here, in one place, so no state change can reach
         the world without appearing in the trace.
+
+        This is also the single point where a fault injector can intervene. The
+        agent does not know whether it was perturbed — it sees only a tool result,
+        exactly as a real agent would.
         """
         call_id = collector.next_call_id()
         snapshot_ref = None if tool in READ_ONLY_TOOLS else f"w{len(collector.steps):04d}"
-        collector.tool_call(tool, arguments, call_id, snapshot_ref)
+        call_step = collector.tool_call(tool, arguments, call_id, snapshot_ref)
+
+        outcome = call_tool(world, tool, arguments)
+        outcome = self._injector.transform_outcome(tool, arguments, outcome, world)
+
+        result_step = collector.tool_result(tool, call_id, outcome)
+        for mutation in outcome.mutations:
+            collector.state_mutation(mutation)
+
+        # Ground truth: the injector records which step it landed on, choosing
+        # between the call step and the result step according to its own layer.
+        self._injector.note_step(call_step=call_step, result_step=result_step)
+
+        for extra_tool, extra_args in self._injector.extra_calls(tool, arguments, outcome):
+            duplicate_step = self._invoke_raw(collector, world, extra_tool, extra_args)
+            self._injector.note_step(call_step=duplicate_step, result_step=duplicate_step)
+
+        return outcome
+
+    def _invoke_raw(
+        self,
+        collector: TraceCollector,
+        world: World,
+        tool: str,
+        arguments: dict[str, Any],
+    ) -> str:
+        """Execute an injected duplicate call, without re-entering injection.
+
+        Returns the ``tool_call`` step id: for a retry fault, the duplicated call
+        *is* the causal step.
+        """
+        call_id = collector.next_call_id()
+        snapshot_ref = None if tool in READ_ONLY_TOOLS else f"w{len(collector.steps):04d}"
+        call_step = collector.tool_call(tool, arguments, call_id, snapshot_ref)
         outcome = call_tool(world, tool, arguments)
         collector.tool_result(tool, call_id, outcome)
         for mutation in outcome.mutations:
             collector.state_mutation(mutation)
-        return outcome
+        return call_step
 
     # ---- the loop ------------------------------------------------------------
 
@@ -91,6 +138,9 @@ class SimpleCustomerOpsAgent:
         world: World,
         injection: InjectionInfo | None = None,
     ) -> AgentRun:
+        # World-layer faults land before the run starts, so `before` reflects the
+        # environment the agent actually faced.
+        world = self._injector.prepare_world(world)
         before = world.snapshot()
         collector = TraceCollector(
             trace_id=f"{scenario.scenario_id}-{world.seed}",
@@ -106,7 +156,10 @@ class SimpleCustomerOpsAgent:
             self._handle_refund(collector, world, scenario)
 
         outcome = scenario.judge(world, before)
-        trace = collector.seal(outcome, injection=injection)
+        # Ground truth comes from the injector that did the perturbing, or from an
+        # explicit override. It is never derived from the run, and never from a model.
+        recorded = injection or (self._injector.ground_truth() if self._injector.fired else None)
+        trace = collector.seal(outcome, injection=recorded)
         return AgentRun(trace=trace, world=world)
 
     def _handle_cancel(

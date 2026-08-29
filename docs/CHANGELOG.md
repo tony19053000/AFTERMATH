@@ -60,6 +60,38 @@ The convenience ADK offers is precisely the part we need to own. **DECISION: cus
 
 ---
 
+## 2026-08-30 — P3 Fault injection & incidents with ground truth
+
+**WHAT WE TRIED.** An injection framework with hooks at the tool-result, world-state, and retry layers; an incident definition format loaded from `data/incidents/`; and 5 incidents whose ground truth is authored by the injector at injection time.
+
+**WHY.** Trustworthy ground truth is the precondition for measuring root-cause accuracy at all (D-002). The design commitment: the injector records the trace step it perturbed, so `true_causal_step` is written by the code that did the perturbing — not inferred, not asked of a model. `true_causal_step` is deliberately **not** stored in the definition files: step ids are ordinal and only exist once a run has happened, so hand-writing one would be asserting a causal claim with no experiment behind it — the exact habit this project exists to replace.
+
+**TWO INCIDENTS FAILED AND WERE REPLACED — this is the useful part of this entry.**
+
+*Wrong-customer (context layer) — REMOVED as inert.* The plan was to substitute a different `customer_id` on `get_customer` so a tier change would flip refund eligibility. It fired correctly and changed nothing: `calculate_refund` re-reads the customer from world state via `order.customer_id` and never uses what `get_customer` returned. Checking further, no order in the seeded world has an age in the (30, 45] band where a tier swap could flip eligibility anyway. **A fault that cannot affect an outcome is not an incident** — shipping it would have put a guaranteed-passing case into the benchmark and inflated every rate computed over it. The `wrong_customer` kind and the context hook were deleted rather than left as dead code; `InjectionLayer.CONTEXT` remains as taxonomy, and a spec declaring it now fails loudly instead of silently reporting a false negative.
+
+*World-state staleness — initially never fired.* `prepare_world` perturbed the environment but recorded no causal step, so the run raised rather than producing ground truth. Fixed by separating *where the perturbation happened* (before the run) from *where the wrong value entered the trace* (the first `get_policy` result). In I-005 the tool is entirely honest — it truthfully reports the only policy that exists — and the environment is what is wrong. I-001 and I-005 were kept as separate incidents precisely because they reach the same outcome by different mechanisms, which P4/P5 must be able to distinguish.
+
+A third, smaller correction: `malformed_policy_output` originally deleted the `version` field, which raised `KeyError` inside the agent — a crash, not a traceable incident. It now serves a mislabeled version instead, so the failure surfaces on a value the agent can see.
+
+**RESULT / EVIDENCE.** `pytest backend/tests -q` → **260 passed** in 0.63s, offline. 5 incidents across 3 injection layers, each failing its *declared* oracle (asserted, so an incident failing for an unrelated reason is caught):
+
+| incident | layer | causal step | failing oracle | rate |
+|---|---|---|---|---|
+| I-001 stale policy (tool result) | tool_result | s0007 | refund_denied_outside_window | 1.00 |
+| I-002 duplicate refund after retry | retry | s0019 | no_duplicate_refund | 1.00 |
+| I-003 approval bypass | tool_result | s0009 | approval_required_above_limit | 1.00 |
+| I-004 malformed policy version | tool_result | s0007 | refund_within_current_policy | 1.00 |
+| I-005 stale policy (world state) | world_state | s0007 | refund_denied_outside_window | 1.00 |
+
+All 5 clean scenarios still PASS with no injection recorded. Ground truth verified reproducible with **no provider at all**, so no model can have influenced it.
+
+**Honest note on the rate.** 1.00 across the board because the agent is fully deterministic — every trial is identical. The rate is measured rather than assumed so the number stays truthful once P4 introduces resampled replay and real variance appears. It is not yet evidence of anything interesting.
+
+**DECISION: KEEP.**
+
+---
+
 ## Experiment log
 
 *(Empty. First entries expected in P4 — replay determinism findings — and P7 — baseline comparison.)*

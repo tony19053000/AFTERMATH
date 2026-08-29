@@ -1,0 +1,19 @@
+{
+  "incident_id": "I-002",
+  "description": "A refund is issued successfully, then the call is retried as if it had failed. The refund tool is not idempotent, so the retry produces a second ledger entry and the customer is refunded twice.",
+  "scenario_id": "refund_no_duplicate",
+  "expected_behavior": "Exactly one refund entry for ORD-2007.",
+  "observed_behavior": "Two refund entries for ORD-2007; the order is refunded twice.",
+  "expected_safe_behavior": "Make refund issuance idempotent (idempotency key), or check the ledger before issuing.",
+  "injected_failure": {
+    "kind": "duplicate_refund_retry",
+    "layer": "retry",
+    "target_tool": "issue_simulated_refund",
+    "occurrence": 1,
+    "params": {},
+    "severity": "critical"
+  },
+  "failing_oracle": "no_duplicate_refund",
+  "severity": "critical",
+  "replay_configuration": { "seed": 1337, "trials": 20, "mode": "strict" }
+}
