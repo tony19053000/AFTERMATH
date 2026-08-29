@@ -35,7 +35,7 @@ Within a phase, % done = satisfied acceptance criteria ÷ total acceptance crite
 
 ## Current objective
 
-Finish P0 (commit the bootstrap), then begin **P1 — Foundations**.
+Begin **P1 — Foundations**: backend scaffold, trace schema, LLM provider abstraction, persistence, test harness.
 
 ## Completed phases
 
