@@ -14,6 +14,11 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 
+# Verified reachable on 2026-08-30 by listing the API's models endpoint. Pinned
+# rather than using the `gemini-pro-latest` alias: an alias that silently moves
+# would make a stored benchmark result unreproducible.
+DEFAULT_MODEL = "gemini-3.1-pro-preview"
+
 
 class LLMProviderName(StrEnum):
     """Selectable model providers. `MOCK` is deterministic and offline."""
@@ -33,7 +38,12 @@ class Settings(BaseSettings):
     )
 
     llm_provider: LLMProviderName = LLMProviderName.MOCK
-    baseline_model: str = "gemini-2.5-pro"
+
+    # Baseline fairness (D-007) requires equivalent capability on both sides, so
+    # these default to the same model. Changing one without the other invalidates
+    # the benchmark comparison.
+    agent_model: str = DEFAULT_MODEL
+    baseline_model: str = DEFAULT_MODEL
 
     seed: int = 1337
     record_llm_calls: bool = True

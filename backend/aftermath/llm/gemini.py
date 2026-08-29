@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import os
 
+from aftermath.config import DEFAULT_MODEL
 from aftermath.llm.base import LLMError, LLMRequest, LLMResponse, TokenUsage
 
 API_KEY_ENV = "GEMINI_API_KEY"
@@ -24,7 +25,7 @@ class GeminiProvider:
 
     name = "gemini"
 
-    def __init__(self, api_key: str | None = None, default_model: str = "gemini-2.5-pro") -> None:
+    def __init__(self, api_key: str | None = None, default_model: str = DEFAULT_MODEL) -> None:
         key = api_key or os.environ.get(API_KEY_ENV)
         if not key:
             raise LLMError(

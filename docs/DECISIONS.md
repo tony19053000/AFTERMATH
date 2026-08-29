@@ -162,3 +162,38 @@ The convenience ADK offers — orchestration, tool registration, session handlin
 **Consequences.** Every phase needs enumerable acceptance criteria (they have them). Weights are revisited only with an entry here.
 
 **Reversible?** Yes.
+
+
+---
+
+## D-012 · 2026-08-30 · Pin `gemini-3.1-pro-preview` for both agents and baseline
+
+**Decision.** `DEFAULT_MODEL = "gemini-3.1-pro-preview"`, used by both AFTERMATH's forensic agents (`agent_model`) and the single-LLM baseline (`baseline_model`).
+
+**Alternatives considered.** (a) `gemini-2.5-pro` — the value originally configured; (b) the `gemini-pro-latest` alias; (c) a flash-tier model for cost.
+
+**Reason.** Checked against the API rather than assumed:
+
+- **`gemini-2.5-pro` returns HTTP 404 on this key.** It was our configured default in `config.py` and `.env.example` from P1 onward and would have failed at P5 — mid-pipeline, with no obvious cause. Caught by listing the models endpoint before use.
+- **The alias was rejected for reproducibility.** `gemini-pro-latest` resolves to whatever is current; a stored benchmark result produced under an alias cannot be re-derived later once the alias moves. Pinning an explicit name is what makes §10's "every number traces to a stored artifact" hold over time.
+- Flash tier was rejected for the primary comparison: the baseline must have genuinely capable reasoning or the comparison is unfair by construction (D-007). Flash remains available for cost-sensitive sweeps in P8, recorded if used.
+
+Both sides are set to the same model deliberately. **If they ever diverge, the benchmark stops measuring the engineering system and starts measuring the model gap** — a test asserts they match by default.
+
+**Consequences.** A preview model can be withdrawn or changed by the provider. Two mitigations already in place: every call is recorded to a cassette, so any completed run replays offline byte-identically regardless of upstream changes; and a `live`-marked test asserts the pinned model is still reachable, so a disappearance surfaces as a clear failure rather than a confusing one. Revisit when a stable `gemini-3.x-pro` ships.
+
+**Reversible?** Yes — one constant in `config.py`.
+
+---
+
+## D-013 · 2026-08-30 · The test suite is hermetic against local configuration
+
+**Decision.** An autouse fixture isolates every test from the repository `.env` and from `GEMINI_API_KEY`. Tests marked `live` opt out and are excluded from the default run.
+
+**Alternatives considered.** (a) Leave `Settings` reading `.env` in tests; (b) require developers not to keep a `.env`; (c) hermetic by default with an explicit opt-out.
+
+**Reason.** Adding a real key immediately broke three tests — not because the code was wrong, but because `Settings` read the developer's local `.env` and the suite's assertions changed with it. Two problems, one of them serious: a suite whose result depends on an untracked file is not a suite; and worse, a stray key on any machine could silently turn tests documented as "offline and deterministic" into live, billed network calls. The project's testing philosophy says the default run must be offline and reproducible, so that has to be enforced rather than assumed.
+
+**Consequences.** `pytest backend/tests` passes identically with or without a `.env`, and with or without the key exported — both verified. Live coverage is a deliberate `-m live` run.
+
+**Reversible?** Yes, but reversing it re-introduces exactly the leak described above.

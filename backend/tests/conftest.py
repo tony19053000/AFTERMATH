@@ -32,6 +32,25 @@ def _ts(offset: int) -> datetime:
     return BASE_TIME + timedelta(seconds=offset)
 
 
+@pytest.fixture(autouse=True)
+def hermetic_settings(request: pytest.FixtureRequest, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Isolate every test from the developer's local `.env`.
+
+    Without this, whatever a contributor happens to have configured locally
+    changes what the suite asserts — and a suite whose result depends on an
+    untracked file is not a suite. It also means a real API key on the machine
+    could turn "offline, deterministic" tests into live network calls.
+
+    Tests marked ``live`` opt out: they exist precisely to reach a real provider,
+    and are excluded from the default run.
+    """
+    if request.node.get_closest_marker("live"):
+        return
+    monkeypatch.setitem(Settings.model_config, "env_file", None)
+    monkeypatch.delenv("GEMINI_API_KEY", raising=False)
+    monkeypatch.delenv("AFTERMATH_LLM_PROVIDER", raising=False)
+
+
 @pytest.fixture
 def settings(tmp_path: Path) -> Settings:
     """Settings pointed entirely at a temp directory — never the real data dir."""
