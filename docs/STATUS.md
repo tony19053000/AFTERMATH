@@ -1,7 +1,7 @@
 # AFTERMATH — Project Status
 
 **Last updated:** 2026-08-30
-**Last verified commit:** _(bootstrap commit pending)_
+**Last verified commit:** `c6825fb` — docs: bootstrap AFTERMATH project documentation system
 
 ---
 
@@ -31,7 +31,7 @@ Within a phase, % done = satisfied acceptance criteria ÷ total acceptance crite
 
 ## Current phase
 
-**P0 — Bootstrap & documentation system.** Complete pending commit.
+**P0 — Bootstrap & documentation system.** Complete (committed `c6825fb`).
 
 ## Current objective
 
@@ -52,7 +52,7 @@ Finish P0 (commit the bootstrap), then begin **P1 — Foundations**.
 
 ## Next tasks (in order)
 
-1. Commit the P0 bootstrap.
+1. ~~Commit the P0 bootstrap.~~ Done (`c6825fb`).
 2. **P1.1** — `backend/` package scaffold, `pyproject.toml`, `config.py`, pytest harness.
 3. **P1.2** — trace schema Pydantic models + content hashing + round-trip tests.
 4. **P1.3** — `llm/` provider protocol, mock provider, record/replay wrapper.
@@ -96,4 +96,4 @@ None accrued. Watch items for later: SQLite → PostgreSQL migration seam; artif
 
 - Repository: initialized, branch `main`.
 - Remote: **none configured.** Awaiting a GitHub URL from the project owner.
-- Bootstrap commit: pending.
+- Bootstrap commit: `c6825fb` ✅

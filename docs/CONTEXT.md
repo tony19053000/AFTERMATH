@@ -3,7 +3,7 @@
 **Purpose:** if the session ends or context resets, this file alone (plus the docs it points to) must be enough to continue accurately. Written for a reader who remembers nothing.
 
 **Last updated:** 2026-08-30 — end of bootstrap cycle.
-**Current phase:** P0 complete (pending commit) → next is **P1 Foundations**.
+**Current phase:** P0 complete (committed `c6825fb`) → next is **P1 Foundations**.
 
 ---
 
@@ -56,7 +56,7 @@ None yet. P1 establishes: `pip install -e backend[dev]`, `pytest backend/tests`,
 
 ## Next recommended task
 
-Commit the P0 bootstrap, then start **P1.1**: create the `backend/` package scaffold, `pyproject.toml`, `config.py`, and the pytest harness. Acceptance criteria are in `docs/PHASES.md` under P1.
+Start **P1.1**: create the `backend/` package scaffold, `pyproject.toml`, `config.py`, and the pytest harness. Acceptance criteria are in `docs/PHASES.md` under P1.
 
 ## Unresolved questions (need the project owner)
 
