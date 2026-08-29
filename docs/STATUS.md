@@ -47,7 +47,6 @@ Begin **P1 — Foundations**: backend scaffold, trace schema, LLM provider abstr
 
 ## Blocked tasks
 
-- **Git remote** — no GitHub URL supplied yet. Local commits only until one is provided.
 - **Gemini API key** — not yet configured. P1 can proceed using the mock provider; the live-provider path needs a key in `.env` before P5 runs against a real model.
 
 ## Next tasks (in order)
@@ -95,5 +94,8 @@ None accrued. Watch items for later: SQLite → PostgreSQL migration seam; artif
 ## Git / remote status
 
 - Repository: initialized, branch `main`.
-- Remote: **none configured.** Awaiting a GitHub URL from the project owner.
+- Remote: **`origin` → https://github.com/tony19053000/AFTERMATH.git** ✅ configured 2026-08-30.
+- Remote was empty at first push (0 refs) — no pre-existing history was overwritten.
+- `main` tracks `origin/main`; pushed and verified at `db9c9e7`.
 - Bootstrap commit: `c6825fb` ✅
+- Push policy: no force push, no history rewrite. Push only after a phase's Definition of Done is met.

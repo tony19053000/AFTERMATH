@@ -51,7 +51,7 @@ None yet. P1 establishes: `pip install -e backend[dev]`, `pytest backend/tests`,
 
 - Python 3.12.3, Node 22.22.1, git 2.43 available locally (verified).
 - Gemini API key not yet supplied — P1 proceeds on the mock provider.
-- No GitHub remote yet — local commits only.
+- GitHub remote configured: `origin` → https://github.com/tony19053000/AFTERMATH.git. It was empty before our first push. `main` tracks `origin/main`.
 - Google ADK vs. a custom agent loop is **not yet decided**; see DECISIONS D-004. The adapter boundary means this can be settled in P2 without disruption.
 
 ## Next recommended task
@@ -60,7 +60,7 @@ Start **P1.1**: create the `backend/` package scaffold, `pyproject.toml`, `confi
 
 ## Unresolved questions (need the project owner)
 
-1. GitHub repository URL — needed to configure a remote.
+1. ~~GitHub repository URL~~ — resolved 2026-08-30, remote configured and pushed.
 2. Gemini API key placement in `.env` — needed before any live-model run.
 3. Hackathon deadline and any required tech constraints — affects how far past P7 we scope.
 4. Google ADK for the MVP company agent, or a minimal custom loop? (See D-004; a custom loop is the lower-risk default for determinism.)
