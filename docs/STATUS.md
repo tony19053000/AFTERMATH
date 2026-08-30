@@ -1,7 +1,7 @@
 # AFTERMATH — Project Status
 
 **Last updated:** 2026-08-30
-**Last verified commit:** `81f9594` — feat: P6 immunity vault
+**Last verified commit:** `4e568ae` — feat: P7 fair baseline and benchmark
 
 ---
 
@@ -132,6 +132,6 @@ Artifacts: `data/results/benchmark.json`, `data/results/benchmark_deterministic.
 - Repository: initialized, branch `main`.
 - Remote: **`origin` → https://github.com/tony19053000/AFTERMATH.git** ✅ configured 2026-08-30.
 - Remote was empty at first push (0 refs) — no pre-existing history was overwritten.
-- `main` tracks `origin/main`; pushed and verified at `81f9594`.
+- `main` tracks `origin/main`; pushed and verified at `4e568ae`.
 - Bootstrap commit: `c6825fb` ✅
 - Push policy: no force push, no history rewrite. Push only after a phase's Definition of Done is met.
