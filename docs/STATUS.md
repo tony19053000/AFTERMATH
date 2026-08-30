@@ -1,7 +1,7 @@
 # AFTERMATH — Project Status
 
 **Last updated:** 2026-08-30
-**Last verified commit:** `8786685` — feat: P8.2 agent-count sweep
+**Last verified commit:** `dd41177` — feat: P9 forensic console
 
 ---
 
@@ -153,6 +153,6 @@ Artifact: `data/results/investigator_recall_sweep.json`. Recall rises but does n
 - Repository: initialized, branch `main`.
 - Remote: **`origin` → https://github.com/tony19053000/AFTERMATH.git** ✅ configured 2026-08-30.
 - Remote was empty at first push (0 refs) — no pre-existing history was overwritten.
-- `main` tracks `origin/main`; pushed and verified at `8786685`.
+- `main` tracks `origin/main`; pushed and verified at `dd41177`.
 - Bootstrap commit: `c6825fb` ✅
 - Push policy: no force push, no history rewrite. Push only after a phase's Definition of Done is met.
