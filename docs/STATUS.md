@@ -69,15 +69,13 @@ None in progress.
 
 ## Next tasks (in order)
 
-1. **P10.1** — Docker + compose; verify a clean clone reproduces the benchmark from committed cassettes.
-2. **P10.2** — secrets scan over full git history; confirm nothing sensitive was ever committed.
-3. **P10.3** — security tests: prompt-injection incident, secrets-in-trace redaction.
-4. **P10.4** — README and docs verified line by line against `data/results/`; limitations stated plainly.
-5. **P10.5** — demo script driving the real console against real artifacts.
+1. ~~**P10.2/P10.3/P10.4** — secrets scan, security tests, docs-drift checker.~~ Done: 0 secret patterns in full history; 14 security tests; 13 docs tests that fail on real drift.
+2. **P10.1** — Docker + compose; verify a clean clone reproduces the benchmark from committed cassettes.
+3. **P10.5** — demo script driving the real console against real artifacts.
 
 ## Failing tests
 
-None. **848 passed** offline (`pytest backend/tests -q`, ~5s), plus 5 opt-in `live` tests requiring a key.
+None. **875 passed** offline (`pytest backend/tests -q`, ~7s), plus 5 opt-in `live` tests requiring a key.
 
 ## Known bugs
 
@@ -145,8 +143,10 @@ Note: the *monitored* company agent (P2) is the subject of forensics, not a fore
 
 ## Security / TEE status
 
-- Secrets: `.env` gitignored (mode 600), `.env.example` holds placeholders only. Verified absent from the staged diff and from history.
-- Committed cassettes scanned for secrets, asserted by test.
+- Secrets: `.env` gitignored (mode 600), `.env.example` holds placeholders only.
+- **Full git history scanned: 0 matches** for API keys, private keys, or tokens. `.env` has never been tracked. Asserted by `TestNoSecretsAnywhere`.
+- Committed cassettes hold responses only — no headers, no key material. Asserted by test.
+- **Prompt injection is inert against this agent**, and the reason is recorded honestly: its control flow is deterministic Python, so injected instruction text has nothing to act on. That is a property of the current simple agent (D-003), *not* a mitigation we built, and it stops holding the moment the monitored agent becomes model-driven. `TestInstructionTextCannotSteerTheAgent` asserts it so the assumption fails loudly if that changes.
 - TEE / Secure Forensic Vault: **not implemented, optional, P11.** No TEE, attestation, or confidential-computing claim appears anywhere in this project, and none may until real attestation output exists.
 
 ## Deployment status
