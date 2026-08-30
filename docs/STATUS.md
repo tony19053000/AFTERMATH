@@ -1,7 +1,7 @@
 # AFTERMATH — Project Status
 
 **Last updated:** 2026-08-30
-**Last verified commit:** `2cdf053` — docs: record P9 commit hash in STATUS
+**Last verified commit:** `87a1426` — feat: monitored-company demo
 
 ---
 
@@ -157,6 +157,6 @@ Note: the *monitored* company agent (P2) is the subject of forensics, not a fore
 
 - Repository: branch `main`, remote `origin` → https://github.com/tony19053000/AFTERMATH.git
 - Remote was empty at first push (0 refs) — no pre-existing history was overwritten.
-- `main` tracks `origin/main`, in sync at `2cdf053`.
+- `main` tracks `origin/main`, in sync at `87a1426`.
 - Bootstrap commit: `c6825fb`.
 - Push policy: no force push, no history rewrite. Push only after a phase's Definition of Done is met.
