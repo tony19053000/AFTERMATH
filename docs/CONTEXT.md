@@ -2,14 +2,39 @@
 
 **Purpose:** if the session ends or context resets, this file alone (plus the docs it points to) must be enough to continue accurately. Written for a reader who remembers nothing.
 
-**Last updated:** 2026-08-30 — end of P5.
-**Current phase:** P5 complete → next is **P6 Immunity Vault**.
+**Last updated:** 2026-08-30 — end of P6.
+**Current phase:** P6 complete → next is **P7 Fair baseline + benchmark**.
 
 ---
 
 ## What was completed this cycle
 
-**P5 — the MVP vertical slice, closed.** Incident → evidenced cause → tested repair.
+**P6 — the Immunity Vault.** A fixed failure can no longer come back silently.
+
+- `immunity/case.py` — `RegressionCase` + `build_case`. Takes primitives, not a forensic report: `immunity/` and `forensics/` are siblings, and the vault must not depend on *how* a diagnosis was reached, only on what was proven.
+- `immunity/runner.py` — `AgentVersion` (agent + the guardrails it ships), suite runner, release gate.
+- `immunity/vault.py` — JSON storage at `data/immunity/`, **committed** (unlike experiment artifacts, cases are durable records reviewable in a diff).
+- `replay/repair.py` — `GuardChain` so multiple guardrails compose; a release accumulates them.
+
+### The release gate, measured
+
+| version | result |
+|---|---|
+| unrepaired *(control)* | **0/4 protected → RELEASE WARNING** |
+| all guardrails | **4/4 protected → RELEASE OK** |
+| idempotency guard dropped | **3/4 → RELEASE WARNING**, catches RC-I-002 |
+
+Every guardrail is dropped in turn and asserted to be caught by at least one case.
+
+**A case must be able to fail.** `vault.store()` admits nothing until it FAILS unrepaired and PASSES repaired. Both rejection paths are tested.
+
+**Hole found in review:** "protected" did not distinguish *guard worked* from *fault never fired* — a green tick over an exercise of nothing. `CaseResult.fault_fired` / `ImmunityReport.vacuous` now surface it; verified no case passes vacuously.
+
+**Only 4 cases, not 5.** I-005 has no acceptable repair, so it cannot become one. A test asserts its absence and shows why forcing it would be wrong: the blocking guard passes its own controls perfectly yet breaks a legitimate refund. Controls alone are insufficient; the false-block gate is what stops a broken guardrail being recorded as a fix.
+
+---
+
+### Earlier: P5 — the MVP vertical slice, closed. Incident → evidenced cause → tested repair.
 
 - `forensics/schemas.py` — strict Pydantic I/O for all four agents.
 - `forensics/parsing.py` — recovers JSON from fenced/preambled model output; raises `AgentOutputError` rather than guessing.
@@ -100,7 +125,7 @@ I-001 and I-005 reach the *same* outcome by different mechanisms (corrupt tool v
 
 ## What currently works
 
-- `pytest backend/tests -q` → **386 passed** in ~2.1s, fully offline. Plus 5 opt-in `live` tests against the real model.
+- `pytest backend/tests -q` → **417 passed** in ~1.9s, fully offline. Plus 5 opt-in `live` tests against the real model.
 - All 5 incidents reproduce their failure at rate 1.00 (measured over 20 trials each).
 - All 5 clean scenarios still PASS with no injection recorded.
 - Identical seed → identical trace content hash **and** identical world state hash, verified across all 5 scenarios.
@@ -121,7 +146,7 @@ All 5 P2 acceptance criteria, each with a named test (mapped in `docs/TESTING.md
 uv venv --python 3.12 .venv                                  # python3 -m venv is broken here
 uv pip install --python .venv/bin/python -e "backend[dev]"
 
-.venv/bin/python -m pytest backend/tests -q                  # 386 passed
+.venv/bin/python -m pytest backend/tests -q                  # 417 passed
 .venv/bin/python -m pytest backend/tests -m live -q          # 3 passed, needs GEMINI_API_KEY
 .venv/bin/python -m uvicorn aftermath.api.app:app --port 8000
 ```
@@ -162,7 +187,13 @@ ORD-2008 is the only `pending` order (the sole cancellable one). ORD-2011 is cle
 
 ## Next recommended task
 
-**P6.1 — the Immunity Vault.** Convert a verified P5 report into a permanent regression case, then prove the case works with two controls: it must **FAIL against the unrepaired agent** and **PASS against the repaired one**. Both asserted in Python. Everything needed already exists: `RepairSpec` + `RepairGuard` apply a fix, and the incident definitions carry scenario/seed/injection/oracle.
+**P7 — the fair baseline and the benchmark.** This is the phase that decides whether the project's central claim holds.
+
+Start with **P7.1**: a single-LLM baseline given the same trace, the same output schema, a genuinely well-written prompt, and the same model. D-007 is a methodology commitment — a strawman baseline invalidates everything, and the result gets published even if AFTERMATH loses. Record the fairness review in DECISIONS.
+
+Then the deterministic grader (near-miss and adjacent-step handling matter: with causal chains, "s0009 instead of s0007" is a near miss, not a random error), expanding the incident set toward 15–20, and committing cassettes so a benchmark run is reproducible from a clean clone.
+
+### Superseded: P6.1 — the Immunity Vault. Convert a verified P5 report into a permanent regression case, then prove the case works with two controls: it must **FAIL against the unrepaired agent** and **PASS against the repaired one**. Both asserted in Python. Everything needed already exists: `RepairSpec` + `RepairGuard` apply a fix, and the incident definitions carry scenario/seed/injection/oracle.
 
 Then the suite runner against an arbitrary agent version, the release-gate report, and a deliberately reintroduced bug to confirm the suite catches it.
 

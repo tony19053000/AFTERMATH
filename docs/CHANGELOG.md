@@ -189,6 +189,45 @@ P4 left the cause-vs-consequence tie broken by an earliest-step heuristic. `repl
 
 ---
 
+## 2026-08-30 — P6 Immunity Vault
+
+**WHAT WE TRIED.** Converting verified incidents into permanent regression cases, a vault that stores them, a suite runner that replays them against any agent version, and a release gate.
+
+**WHY.** The loop only closes if a fixed failure cannot come back. Everything before this phase produced a *diagnosis*; this produces *protection*.
+
+### The measured release gate
+
+Cases generated from real P5 pipeline output, not hand-written:
+
+| version under test | result |
+|---|---|
+| v1.0 unrepaired *(control)* | **0/4 protected, 4 regressions → RELEASE WARNING** |
+| v2.0 all guardrails | **4/4 protected, 0 regressions → RELEASE OK** |
+| v2.1 idempotency guard dropped | **3/4 protected, 1 regression → RELEASE WARNING** |
+
+The v2.1 row is the scenario the vault exists for: a release quietly drops a guardrail, and RC-I-002 catches it with the concrete detail `2 refund entries for ORD-2007`. A further test drops **each** guardrail in turn and asserts every one is caught by at least one case — a guard that no case depends on is either untested or unnecessary.
+
+### A case must be able to fail
+
+Every case is admitted only after both controls pass: it must **FAIL against the unrepaired agent** and **PASS against the repaired one**. `ImmunityVault.store()` refuses a case that fails either check, so the suite cannot accumulate cases that detect nothing. Both directions are asserted per case:
+
+- pointing a case at a scenario with no fault → rejected, *"cannot detect the bug it exists to catch"*
+- pairing a case with a repair that does not work → rejected, *"the repair does not prevent the incident"*
+
+### A hole found in review
+
+`run_case` originally reported "protected" without distinguishing *the guard worked* from *the fault never fired*. A case whose staged fault silently stops occurring would show a green tick while exercising nothing — the worst possible failure mode for a release gate, because it fails safe-looking. `CaseResult.fault_fired` and `ImmunityReport.vacuous` now surface it, the summary line calls it out, and a test asserts no case in the suite passes vacuously. Verified: all four faults fire in every configuration.
+
+### I-005 is deliberately absent
+
+Four cases exist, not five. I-005 has no acceptable repair — only `block_all_refunds` prevents it, at the cost of legitimate refunds — so it cannot become an immunity case. A test asserts its absence *and* demonstrates why forcing it would be wrong: the blocking guard passes its own controls perfectly, yet breaks a legitimate refund. **Controls alone are not sufficient; the false-block gate is what stops a broken guardrail being recorded as a fix.**
+
+**RESULT / EVIDENCE.** `pytest backend/tests -q` → **417 passed** in ~1.9s offline. Vault committed at `data/immunity/` (4 cases) — unlike experiment artifacts, cases are durable records and belong in version control so a release gate is reviewable in a diff.
+
+**DECISION: KEEP.** Incident → verified protection → permanent regression case now runs end to end.
+
+---
+
 ## Experiment log
 
 *(Empty. First entries expected in P4 — replay determinism findings — and P7 — baseline comparison.)*

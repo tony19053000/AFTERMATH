@@ -5,7 +5,7 @@
 
 ---
 
-# Overall Completion: 60%
+# Overall Completion: 68%
 
 **Derivation.** Completion is the weighted sum of phase completion from `docs/PHASES.md`. It is never estimated by feel.
 
@@ -17,13 +17,13 @@
 | P3 Fault injection & incidents | 8 | 100% | 8.0 |
 | P4 Replay engine ⚠ | 14 | 100% | 14.0 |
 | P5 Minimal forensic pipeline (MVP) | 14 | 100% | 14.0 |
-| P6 Immunity Vault | 8 | 0% | 0.0 |
+| P6 Immunity Vault | 8 | 100% | 8.0 |
 | P7 Baseline & benchmark | 10 | 0% | 0.0 |
 | P8 Swarm expansion & agent-count study | 10 | 0% | 0.0 |
 | P9 Frontend | 8 | 0% | 0.0 |
 | P10 Hardening & demo | 4 | 0% | 0.0 |
 | P11 TEE vault *(optional, unweighted)* | 0 | 0% | 0.0 |
-| **Total** | **100** | | **60.0** |
+| **Total** | **100** | | **68.0** |
 
 Within a phase, % done = satisfied acceptance criteria ÷ total acceptance criteria for that phase.
 
@@ -31,11 +31,11 @@ Within a phase, % done = satisfied acceptance criteria ÷ total acceptance crite
 
 ## Current phase
 
-**P5 — Minimal forensic pipeline.** Complete. **The MVP vertical slice is closed:** incident → evidenced cause → tested repair. 5/5 localization on the deterministic path and 5/5 against live agents (5/5 agent-sourced hypotheses).
+**P6 — Immunity Vault.** Complete. All 3 acceptance criteria verified. 4 regression cases committed; release gate reads **0/4 unrepaired → 4/4 repaired → 3/4 with a guard dropped**.
 
 ## Current objective
 
-Begin **P6 — Immunity Vault**: convert a verified incident into a permanent regression case that fails against the unrepaired agent and passes against the repaired one, plus a suite runner and release gate.
+Begin **P7 — Fair baseline + benchmark harness + real metrics**. This is the phase that decides whether AFTERMATH actually beats a plain LLM, and the result gets reported honestly either way.
 
 ## Completed phases
 
@@ -45,6 +45,7 @@ Begin **P6 — Immunity Vault**: convert a verified incident into a permanent re
 - **P3** — injection framework (tool-result, world-state, retry layers), incident definition format + loader, **5 incidents** with injector-authored ground truth, normal-case set.
 - **P4** — deterministic replay engine, counterfactual interventions, N-trial experiment runner, effect-size ranking. Byte-identical strict replay verified; 4/5 correct root-cause localization under a strong (healthy-value) control.
 - **P5** — 4 runtime agents (investigator, planner, repair, verifier) + orchestrator; redaction; measurement-based cause/consequence separation (`replay/chain.py`); repair guard library with prevention **and** false-block evaluation. 5/5 localization deterministically and with live agents.
+- **P6** — regression cases with two-direction controls, immunity vault (4 cases committed), composable guard chains, suite runner and release gate. Reintroduced-bug detection verified.
 
 ## Active tasks
 
@@ -56,15 +57,15 @@ Begin **P6 — Immunity Vault**: convert a verified incident into a permanent re
 
 ## Next tasks (in order)
 
-1. **P6.1** — regression case format: scenario + seed + injection + oracle + expected safe behaviour.
-2. **P6.2** — generate a case from a verified P5 report; assert it FAILS against the unrepaired agent and PASSES against the repaired one.
-3. **P6.3** — vault storage + suite runner against an arbitrary agent version.
-4. **P6.4** — release-gate report (`n protected / m regressions → RELEASE WARNING`).
-5. **P6.5** — reintroduce a fixed bug deliberately and confirm the suite catches it.
+1. **P7.1** — single-LLM baseline: same trace, same output schema, competently written prompt, equivalent model. Fairness review recorded in DECISIONS.
+2. **P7.2** — deterministic grader comparing a diagnosis to injector ground truth, including near-miss and adjacent-step handling.
+3. **P7.3** — expand the incident set toward 15–20.
+4. **P7.4** — metrics over stored artifacts; commit cassettes so a benchmark run is reproducible from a clean clone.
+5. **P7.5** — benchmark report. **Publish the result even if AFTERMATH loses.**
 
 ## Failing tests
 
-None. **386 passed** offline (`pytest backend/tests -q`, ~2.1s), plus 5 opt-in `live` tests.
+None. **417 passed** offline (`pytest backend/tests -q`, ~1.9s), plus 5 opt-in `live` tests.
 
 ## Known bugs
 
@@ -72,7 +73,8 @@ None known.
 
 ## Technical debt
 
-- `immunity/` and `benchmark/` are still empty package stubs. The import-boundary guard is load-bearing for `replay/` and now also covers the deterministic chain and repair modules.
+- `benchmark/` is still an empty package stub.
+- **The immunity suite has 4 cases, not 5.** I-005 has no acceptable repair, so it cannot become one. Correct behaviour, asserted by test — do not force a case for it. The import-boundary guard is load-bearing for `replay/` and now also covers the deterministic chain and repair modules.
 - **Repairs are selected from a fixed guard library, not synthesized.** The agent chooses a kind; Python applies and measures it. Keeps repairs executable, but narrows what "the agent proposes a repair" means.
 - **I-005 has no acceptable repair in the library.** A freshness check cannot fix a world that genuinely lacks the newer policy. Reported honestly (`repair_accepted: false`) rather than promoting the blocker.
 - **Live cassettes are gitignored**, so the live agent result is not reproducible from a clean clone. Committing benchmark cassettes is a P7 task.

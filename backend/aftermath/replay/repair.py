@@ -69,6 +69,9 @@ class RepairGuard:
         self._fault = fault or NullInjector()
         self.triggered = 0
 
+    def __repr__(self) -> str:  # pragma: no cover - debugging aid
+        return f"RepairGuard({self.spec.kind.value})"
+
     @property
     def fired(self) -> bool:
         return bool(getattr(self._fault, "fired", False))
@@ -141,6 +144,66 @@ class RepairGuard:
                         mutations=faulted.mutations,
                     )
         return faulted
+
+
+class GuardChain:
+    """Several guards applied in sequence, over one fault.
+
+    A released agent accumulates guardrails: an immunity suite must exercise all
+    of them together, because a repair that works alone may be defeated by a
+    later one, and only running them combined would reveal that.
+
+    Each guard sees the output of the previous, so ordering is preserved and
+    stated rather than incidental.
+    """
+
+    def __init__(self, specs: tuple[RepairSpec, ...], fault: Injector | NullInjector | None = None):
+        self.specs = specs
+        self._fault = fault or NullInjector()
+        # Only the first guard carries the fault; the rest layer on top of it.
+        self._guards = [RepairGuard(spec) for spec in specs]
+
+    @property
+    def triggered(self) -> int:
+        return sum(g.triggered for g in self._guards)
+
+    @property
+    def fired(self) -> bool:
+        return bool(getattr(self._fault, "fired", False))
+
+    def ground_truth(self):
+        return self._fault.ground_truth() if self.fired else None
+
+    def prepare_world(self, world: World) -> World:
+        return self._fault.prepare_world(world)
+
+    def note_step(self, *, call_step: str, result_step: str) -> None:
+        self._fault.note_step(call_step=call_step, result_step=result_step)
+
+    def extra_calls(self, tool: str, arguments: dict[str, Any], outcome: ToolOutcome):
+        return self._fault.extra_calls(tool, arguments, outcome)
+
+    def override_call(self, tool: str, arguments: dict[str, Any]) -> ToolOutcome | None:
+        for guard in self._guards:
+            overridden = guard.override_call(tool, arguments)
+            if overridden is not None:
+                return overridden
+        return self._fault.override_call(tool, arguments)
+
+    def guard_before_call(self, tool: str, arguments: dict[str, Any], world: World):
+        for guard in self._guards:
+            guarded = guard.guard_before_call(tool, arguments, world)
+            if guarded is not None:
+                return guarded
+        return None
+
+    def transform_outcome(
+        self, tool: str, arguments: dict[str, Any], outcome: ToolOutcome, world: World
+    ) -> ToolOutcome:
+        current = self._fault.transform_outcome(tool, arguments, outcome, world)
+        for guard in self._guards:
+            current = guard.transform_outcome(tool, arguments, current, world)
+        return current
 
 
 class RepairEvaluation(BaseModel):

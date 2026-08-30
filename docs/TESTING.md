@@ -1,6 +1,6 @@
 # AFTERMATH — Testing Strategy
 
-**Status:** live as of P5. 386 tests, fully offline and deterministic.
+**Status:** live as of P6. 417 tests, fully offline and deterministic.
 
 ---
 
@@ -72,7 +72,7 @@ uv pip install --python .venv/bin/python -e "backend[dev]"
 
 Markers: `slow` · `live` · `replay` · `benchmark` · `security`. `addopts` excludes `live` by default, so the suite never needs a network or a key.
 
-**Current:** 386 passed offline (~2.1s), plus 5 `live` tests that pass against the real provider when run deliberately.
+**Current:** 417 passed offline (~1.9s), plus 5 `live` tests that pass against the real provider when run deliberately.
 
 **Hermeticity.** An autouse fixture isolates tests from the repository `.env` and from `GEMINI_API_KEY` (D-013). The default run behaves identically whether or not a key is present on the machine — verified both ways. `live`-marked tests opt out and are the only ones permitted to reach a network.
 
@@ -135,7 +135,13 @@ Each phase's acceptance criteria in `docs/PHASES.md` map to named tests. A phase
 | P5 | heuristic fallback is labelled | `test_heuristic_fallback_is_labelled_as_such` |
 | P5 | report reproducible from artifacts | `test_report_is_reproducible` |
 | P5 | live agents actually contribute | `TestLiveAgentPath` *(live)* |
-| P6 | regression case fails unrepaired, passes repaired | `test_immunity_case_controls` |
+| P6 | case fails unrepaired | `test_case_fails_against_the_unrepaired_agent` |
+| P6 | case passes repaired | `test_case_passes_against_the_repaired_agent` |
+| P6 | vault refuses a case that detects nothing | `test_store_verifies_controls_before_admitting` |
+| P6 | reintroduced bug is caught | `test_reintroduced_bug_is_caught` |
+| P6 | every guardrail is load-bearing | `test_every_guardrail_is_load_bearing` |
+| P6 | no case passes vacuously | `test_no_case_passes_vacuously` |
+| P6 | unrepairable incident is not forced into a case | `TestUnrepairableIncidentIsNotForced` |
 | P7 | identical incident set for both systems | `test_baseline_parity` |
 | P7 | reported metrics match artifacts | `test_metrics_match_artifacts` |
 | P8 | agent count is configuration | `test_swarm_configurable` |

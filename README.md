@@ -2,11 +2,13 @@
 
 **From Agent Incident to Verified Immunity.**
 
-> **Project status: P5 of 11 complete (60%). The MVP vertical slice is closed** — incident → evidenced cause → tested repair, end to end.
+> **Project status: P6 of 11 complete (68%). The full loop runs** — incident → evidenced cause → tested repair → permanent regression case.
 >
 > Root cause correctly localized in **5/5 seed incidents**, both on the deterministic path and against live agents (where **5/5 hypotheses were agent-proposed**, not fallback). Repairs are measured on prevention *and* on whether they break legitimate cases; 4/5 incidents get an accepted repair, and the fifth is reported as having none rather than being given a bad one. 386 tests, all offline.
 >
-> Honest limits: one incident's cause still rests on a labelled heuristic rather than measurement; repairs are selected from a fixed guard library, not written by the model; and the live run's cassettes are gitignored, so that result is not yet reproducible from a clean clone. There is **no baseline comparison yet** (P7) — until then, nothing here claims AFTERMATH beats a plain LLM.
+> The release gate is real: against the unrepaired agent **0/4 cases pass**; with the guardrails **4/4**; drop one guardrail and the suite catches the returning bug. 417 tests, all offline.
+>
+> Honest limits: one incident's cause still rests on a labelled heuristic rather than measurement; one incident has **no acceptable repair** and is reported as such rather than given a bad one; repairs are selected from a fixed guard library, not written by the model; and live cassettes are gitignored, so that result is not yet reproducible from a clean clone. There is **no baseline comparison yet** (P7) — until then, nothing here claims AFTERMATH beats a plain LLM.
 
 ---
 
@@ -65,7 +67,7 @@ Not a log summarizer. Not an observability dashboard. Not a multi-agent chat fra
 | **Evidence Board** | Hypotheses pinned to real trace steps, strengthened or weakened by experiment |
 | **Replay Lab** | Counterfactual branches with measured failure rates |
 | **Repair Tournament** | Competing repair strategies compared on test evidence |
-| **Immunity Vault** | Verified incidents as permanent regression cases; release gating for new agent versions |
+| **Immunity Vault** | ✅ Built. Verified incidents as permanent regression cases; release gating for new agent versions |
 | **Secure Forensic Vault** | *Future, optional.* Confidential handling of sensitive traces |
 
 ## Architecture (planned)
@@ -86,7 +88,7 @@ The backend runs fully offline on a deterministic mock provider — no API key n
 uv venv --python 3.12 .venv
 uv pip install --python .venv/bin/python -e "backend[dev]"
 
-.venv/bin/python -m pytest backend/tests -q                 # 386 passed
+.venv/bin/python -m pytest backend/tests -q                 # 417 passed
 .venv/bin/python -m uvicorn aftermath.api.app:app --port 8000
 curl -s localhost:8000/health
 ```
@@ -102,6 +104,20 @@ report = ForensicOrchestrator(None, trials=3).investigate(load_incidents()["I-00
 print(report.root_cause_step)   # s0007, chosen by measured effect
 print(report.resolution)        # how it was decided: measurement or heuristic
 print(report.repair)            # prevention_rate, false_block_rate, accepted
+```
+
+Run the immunity suite as a release gate:
+
+```python
+from aftermath.immunity.vault import ImmunityVault
+from aftermath.immunity.runner import AgentVersion, run_suite
+
+vault = ImmunityVault()
+print(run_suite(vault.load_all(), AgentVersion.unrepaired()).summary())
+# 0/4 protected, 4 regression(s) -> RELEASE WARNING
+
+print(run_suite(vault.load_all(), AgentVersion("v2.0", vault.repairs_of_record())).summary())
+# 4/4 protected, 0 regression(s) -> RELEASE OK
 ```
 
 Run a monitored scenario and inspect the trace it produces:

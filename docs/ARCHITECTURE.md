@@ -1,6 +1,6 @@
 # AFTERMATH — Architecture
 
-**Status:** Updated 2026-08-30, end of P5. Built: the monitored agent (world, tools, scenarios, oracles), the trace layer, the LLM provider abstraction, persistence, the API skeleton, and fault injection with a 5-incident benchmark. Built in P4–P5: the replay engine, counterfactual interventions, effect-size ranking, measurement-based cause/consequence separation, the repair guard library, and the 4 MVP forensic agents with their orchestrator. Not yet built, the immunity vault (P6), the benchmark (P7), the frontend (P9).
+**Status:** Updated 2026-08-30, end of P6. Built: the monitored agent (world, tools, scenarios, oracles), the trace layer, the LLM provider abstraction, persistence, the API skeleton, and fault injection with a 5-incident benchmark. Built in P4–P5: the replay engine, counterfactual interventions, effect-size ranking, measurement-based cause/consequence separation, the repair guard library, the 4 MVP forensic agents with their orchestrator, and the Immunity Vault with its release gate. Not yet built, the immunity vault (P6), the benchmark (P7), the frontend (P9).
 
 This document must match the real codebase; a stale diagram here is treated as a defect.
 
