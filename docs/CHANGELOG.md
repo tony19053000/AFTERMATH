@@ -389,6 +389,39 @@ No *pair* of guards revealed it. Only the full set did.
 
 ---
 
+## 2026-08-30 — P8.2: the agent-count sweep. **More investigators help recall, and buy nothing the fallback does not already give free.**
+
+**WHAT WE TRIED.** 1, 3 and 5 investigators over all 20 incidents, each with a distinct lens (tool/API, context/memory, state/systems, security/policy, reasoning), hypotheses unioned. D-008 committed to answering "how many agents?" with data.
+
+**WHY RECALL, NOT LOCALIZATION.** P8.1 changed what is measurable. Because the pipeline now falls back to the exhaustive sweep when no agent hypothesis survives, **localization is floored by the deterministic engine regardless of agent quality** — running all three arms through the full pipeline would have measured the same floor three times. What varies with agent count is whether the true cause is *on the table at all*. That is recall, and it is what was measured.
+
+| investigators | recall | tokens / incident | wall-clock |
+|---:|---:|---:|---:|
+| 1 | 0.70 | 2,093 | 135s |
+| 3 | 0.80 | 6,424 | 387s |
+| 5 | **0.85** | **10,694** | 360s |
+
+**Marginal gain:**
+
+| step | recall | token cost |
+|---|---:|---:|
+| 1 → 3 | **+0.10** | **×3.07** |
+| 3 → 5 | **+0.05** | ×1.66 |
+
+**The finding.** More agents *do* raise recall — the lenses are not redundant. But the returns halve at each step while cost compounds: **5.1× the tokens for +0.15 recall**. And critically, the thing that extra recall buys is *avoiding the exhaustive fallback* — which the deterministic engine already performs, for free, and which localizes at 0.95. **The extra 0.15 of recall purchases something we already have.**
+
+**Production configuration: 1 investigator.** Not because agents are useless, but because on this benchmark the marginal recall does not convert into marginal localization, and it costs 5× the tokens to obtain. This is exactly the outcome D-008 refused to assume in advance:
+
+> We do not assume more agents is better. If 3 investigators match 7 at a fraction of the cost, the production configuration is 3 and that is the published finding.
+
+**What was NOT measured, stated plainly.** This sweep measured recall and cost. It did **not** measure whether 3 or 5 investigators change end-to-end localization — the fallback makes a large change unlikely, but "unlikely" is not "measured". The one case where more investigators could plausibly help is I-010, where a single investigator names the `tool_call` step and a second lens might name the `tool_result` step. Running all three arms through the full pipeline is a follow-up, and its cost (≈300 live calls) is why it was not done here.
+
+**RESULT / EVIDENCE.** `data/results/investigator_recall_sweep.json`, cassette at `data/cassettes/recall_sweep.json`. 180 live calls.
+
+**DECISION: KEEP 1 investigator in the default configuration.** The count stays configuration, not a constant, so the sweep can be re-run when the agent layer changes.
+
+---
+
 ## Experiment log
 
 *(Empty. First entries expected in P4 — replay determinism findings — and P7 — baseline comparison.)*

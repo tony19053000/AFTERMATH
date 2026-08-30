@@ -121,6 +121,75 @@ class SweepReport(BaseModel):
         return payload
 
 
+def run_recall_sweep(
+    provider: Any,
+    counts: tuple[int, ...] = (1, 3, 5),
+    *,
+    incidents: dict[str, IncidentDefinition] | None = None,
+    model: str | None = None,
+) -> SweepReport:
+    """Measure investigator recall only, without the downstream pipeline.
+
+    Justified by P8.1: because the pipeline now falls back to the exhaustive
+    sweep, localization is floored by the deterministic engine no matter what the
+    investigators say. Running planner, repair and verifier for every arm would
+    spend most of the budget on stages the sweep is not testing, and would
+    measure the same floor three times.
+
+    What varies with agent count is whether the true cause is ON THE TABLE at
+    all — recall — and what that costs. ``localized`` is 0 here because this
+    harness does not run the engine; use `run_sweep` for that.
+    """
+    from aftermath.forensics.agents import Investigator, lenses_for
+    from aftermath.forensics.parsing import AgentOutputError
+    from aftermath.forensics.redaction import redact_for_agent
+    from aftermath.llm.base import LLMError
+
+    catalogue = incidents if incidents is not None else load_incidents()
+    incident_ids = tuple(sorted(catalogue))
+    traces = {i: run_incident(catalogue[i]).run.trace for i in incident_ids}
+
+    arms: list[ArmResult] = []
+    for count in counts:
+        counter = _TokenCounter(provider)
+        hits = empty = 0
+        started = time.time()
+        for incident_id in incident_ids:
+            trace = traces[incident_id]
+            redacted = redact_for_agent(trace)
+            real = {s.step_id for s in trace.steps}
+            proposed: set[str] = set()
+            for lens in lenses_for(count):
+                agent = Investigator(counter, lens=lens)
+                if model:
+                    agent._model = model
+                try:
+                    output = agent.investigate(redacted)
+                except (AgentOutputError, LLMError):
+                    continue
+                proposed |= {
+                    h.suspected_step_id
+                    for h in output.hypotheses
+                    if h.suspected_step_id in real
+                }
+            empty += not proposed
+            hits += trace.injection.true_causal_step in proposed
+
+        arms.append(
+            ArmResult(
+                investigators=count,
+                incidents=len(incident_ids),
+                recall_hits=hits,
+                localized=0,
+                fallbacks=empty,
+                prompt_tokens=counter.prompt_tokens,
+                completion_tokens=counter.completion_tokens,
+                latency_seconds=time.time() - started,
+            )
+        )
+    return SweepReport(arms=arms, incident_ids=incident_ids)
+
+
 class _TokenCounter:
     """Wraps a provider to account tokens per arm. Cost is half the measurement."""
 

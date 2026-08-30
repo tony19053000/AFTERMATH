@@ -1,4 +1,36 @@
 {
+  "sha256:49425a5d17fbbdcf75836c125e8984167c80abcd2335aaf020be871c28171caa": {
+    "model": "gemini-3.1-pro-preview",
+    "text": "```json\n{\"hypotheses\": [\n  {\"suspected_step_id\": \"s0014\",\n   \"mechanism\": \"The agent erroneously calls the issue_simulated_refund tool a second time for the same order, doubling the total refunded amount.\",\n   \"confidence\": 0.95,\n   \"supporting_step_ids\": [\"s0011\", \"s0012\", \"s0015\", \"s0016\"],\n   \"falsifiable_prediction\": \"If the agent is forced to output the final response instead of making the second tool call at s0014, the total refunded amount will remain 17200 and the run will succeed.\"}\n]}\n```",
+    "usage": {
+      "completion_tokens": 163,
+      "prompt_tokens": 2012
+    }
+  },
+  "sha256:4ec6a0b3794f0c410e19a57dc8c66bee6b80be3a458dbf313ab85836a89f7c34": {
+    "model": "gemini-3.1-pro-preview",
+    "text": "```json\n{\"experiments\": [\n  {\"suspected_step_id\": \"s0014\",\n   \"intervention_kind\": \"skip_tool_call\",\n   \"use_healthy_value\": false,\n   \"rationale\": \"Skipping the duplicate tool call at s0014 will prevent the refund from being issued twice, testing if this duplicate call is the cause of the doubled refund amount.\"}\n]}\n```",
+    "usage": {
+      "completion_tokens": 96,
+      "prompt_tokens": 498
+    }
+  },
+  "sha256:557d4ca73b208616b7c0e9d88ab46de2aae3cea898bad951919f9307c06c833d": {
+    "model": "gemini-3.1-pro-preview",
+    "text": "```json\n{\"experiments\": [\n  {\n    \"suspected_step_id\": \"s0003\",\n    \"intervention_kind\": \"replace_tool_result\",\n    \"use_healthy_value\": true,\n    \"rationale\": \"Tests if the tool result at s0003 caused the failure by replacing it with the healthy value.\"\n  },\n  {\n    \"suspected_step_id\": \"s0005\",\n    \"intervention_kind\": \"replace_tool_result\",\n    \"use_healthy_value\": true,\n    \"rationale\": \"Tests if the tool result at s0005 caused the failure by replacing it with the healthy value.\"\n  },\n  {\n    \"suspected_step_id\": \"s0007\",\n    \"intervention_kind\": \"replace_tool_result\",\n    \"use_healthy_value\": true,\n    \"rationale\": \"Tests if the tool result at s0007 caused the failure by replacing it with the healthy value.\"\n  },\n  {\n    \"suspected_step_id\": \"s0009\",\n    \"intervention_kind\": \"replace_tool_result\",\n    \"use_healthy_value\": true,\n    \"rationale\": \"Tests if the tool result at s0009 caused the failure by replacing it with the healthy value.\"\n  },\n  {\n    \"suspected_step_id\": \"s0012\",\n    \"intervention_kind\": \"replace_tool_result\",\n    \"use_healthy_value\": true,\n    \"rationale\": \"Tests if the tool result at s0012 caused the failure by replacing it with the healthy value.\"\n  }\n]}\n```",
+    "usage": {
+      "completion_tokens": 395,
+      "prompt_tokens": 535
+    }
+  },
+  "sha256:5f99ccd03551a38f9bbc73b780a938a061f5f370218f4619a069f94802b10659": {
+    "model": "gemini-3.1-pro-preview",
+    "text": "```json\n{\"hypotheses\": [\n  {\n    \"suspected_step_id\": \"s0009\",\n    \"mechanism\": \"The calculate_refund tool incorrectly returns an amount_cents of 99000 instead of the actual order amount of 17200.\",\n    \"confidence\": 0.95,\n    \"supporting_step_ids\": [\"s0003\", \"s0011\"],\n    \"falsifiable_prediction\": \"If the tool result in s0009 is modified to return amount_cents: 17200, the agent will subsequently issue the refund for the correct amount and the run will succeed.\"\n  },\n  {\n    \"suspected_step_id\": \"s0011\",\n    \"mechanism\": \"The agent blindly passes the incorrect amount_cents (99000) from the calculate_refund tool to issue_simulated_refund, rather than using the correct order amount (17200) it retrieved earlier.\",\n    \"confidence\": 0.8,\n    \"supporting_step_ids\": [\"s0003\", \"s0009\"],\n    \"falsifiable_prediction\": \"If the amount_cents argument in s0011 is changed to 17200, the refund will be issued for the correct amount and the run will succeed.\"\n  }\n]}\n```",
+    "usage": {
+      "completion_tokens": 317,
+      "prompt_tokens": 1724
+    }
+  },
   "sha256:6773c8f9f5d5d4e310d9a88e064cb1f102008634ede4f5023c4694ae900353a3": {
     "model": "gemini-3.1-pro-preview",
     "text": "```json\n{\"proposals\": [{\"kind\": \"validate_policy_freshness\", \"rationale\": \"The root cause step shows the system retrieving policy version 'v1', which led to a refund being incorrectly granted outside the allowed window. This indicates a stale policy was read. Validating policy freshness ensures the currently effective policy is used to evaluate the refund window.\"}]}\n```",
@@ -13,6 +45,14 @@
     "usage": {
       "completion_tokens": 188,
       "prompt_tokens": 1704
+    }
+  },
+  "sha256:79d9c1fd1f50b2e5467d03273bf4d4b17d511a7762706af416efb17513aaa3a1": {
+    "model": "gemini-3.1-pro-preview",
+    "text": "```json\n{\"proposals\": [{\"kind\": \"idempotent_refund\", \"rationale\": \"The total refunded amount (34400) is exactly twice the entitled amount (17200) requested in the step, indicating a duplicate refund was issued. Making refunds idempotent prevents multiple refunds for the same order.\"}]}\n```",
+    "usage": {
+      "completion_tokens": 72,
+      "prompt_tokens": 513
     }
   },
   "sha256:7e1eb7a4cafcd238fd78f3bfe43932c44a8f68513823ceb8428f8765e6d29a91": {
@@ -69,6 +109,14 @@
     "usage": {
       "completion_tokens": 197,
       "prompt_tokens": 608
+    }
+  },
+  "sha256:e1c4c656179ab65e2b6188f65d902e575c33bff67df0819c5a104fc1a9083d35": {
+    "model": "gemini-3.1-pro-preview",
+    "text": "```json\n{\"proposals\": [{\"kind\": \"validate_policy_freshness\", \"rationale\": \"The root cause step shows the system retrieving policy version 'v0', which led to an under-refund. Validating policy freshness ensures the system uses the currently effective policy version, preventing stale-policy reads.\"}]}\n```",
+    "usage": {
+      "completion_tokens": 68,
+      "prompt_tokens": 518
     }
   },
   "sha256:ebf51c4287e691d03ad49ee601562598dec45ed053e7dc5a2e2f2ea3a25dd850": {

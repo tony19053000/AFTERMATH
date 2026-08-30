@@ -326,3 +326,30 @@ This is a scope change, recorded here per the anti-drift rule rather than made s
 **Consequences.** P8 leads with the fallback fix and publishes before/after. The sweep then measures configurations against a **known ceiling of 0.95**, so "does this help?" has a concrete referent. If no configuration beats the ceiling, the honest product ships the deterministic engine with agents as an optional layer, and that is reported as the finding.
 
 **Reversible?** Yes — the full swarm can still be built if the measurements justify it.
+
+
+---
+
+## D-021 · 2026-08-30 · Production configuration is **1 investigator**, decided by measurement
+
+**Decision.** The default configuration runs a single investigator. The swarm is not expanded to 5, 16, or any other count.
+
+**Alternatives considered.** (a) 1; (b) 3; (c) 5; (d) build toward the 16-agent design in `docs/PRODUCT_AGENTS.md`.
+
+**Reason.** Measured over all 20 incidents (`data/results/investigator_recall_sweep.json`):
+
+| investigators | recall | tokens / incident |
+|---:|---:|---:|
+| 1 | 0.70 | 2,093 |
+| 3 | 0.80 | 6,424 |
+| 5 | 0.85 | 10,694 |
+
+Recall does improve — the lenses are not redundant — but returns halve at each step (+0.10 then +0.05) while cost compounds to **5.1×**. More importantly, the extra recall buys *avoidance of the exhaustive fallback*, and the fallback is deterministic, free, and localizes at 0.95. **The additional recall purchases something the system already has.**
+
+**Consequences.** `investigators` remains configuration, never a constant, so this is re-runnable whenever the agent layer changes. The 16-agent design in `docs/PRODUCT_AGENTS.md` stays documented as a design, explicitly not built, with this measurement as the reason.
+
+This is D-008 honoured when the answer was inconvenient: the project committed to agent count being a result rather than a design input, and the result is *fewer*.
+
+**Honest limit.** The sweep measured recall and cost, not end-to-end localization per arm. The fallback makes a large localization difference unlikely, but that is an expectation, not a measurement, and it is recorded as an open follow-up.
+
+**Reversible?** Yes — one parameter, and the harness to re-decide it is committed.

@@ -12,11 +12,11 @@ Two properties:
 2. Vendor SDKs appear only in `llm/` and `companyagent/`, so a provider swap
    touches one file (D-006).
 
-**Honest limitation (P1).** `replay/`, `immunity/`, and `benchmark/` are still
-empty package stubs, so the checks over them currently pass with nothing to
-inspect. They become load-bearing in P4 when the replay engine lands. The
-detector itself is verified against a synthetic violating tree below, so the
-guard is known to work before it has real code to guard.
+This guard is load-bearing as of P4 and has fired in anger since: it caught
+`benchmark/sweep.py` importing the LLM layer in P8.2, forcing that exemption to
+be a recorded decision rather than a silent drift. The detector is also verified
+against synthetic violating trees below, including the realistic case of an LLM
+import hidden inside a function body.
 """
 
 from __future__ import annotations
@@ -31,7 +31,12 @@ PACKAGE_ROOT = Path(__file__).resolve().parents[2] / "aftermath"
 # `benchmark/baseline.py` is the single-LLM baseline: it *is* a model call by
 # definition (D-007). The grader, metrics, and runner beside it stay deterministic.
 DETERMINISTIC_PACKAGES = ("replay", "immunity", "benchmark")
-LLM_EXEMPT = {("benchmark", "baseline.py")}
+# `baseline.py` IS a model call by definition (D-007). `sweep.py` drives
+# investigator agents directly to measure them (P8.2) and must catch LLMError to
+# record a provider failure as data. Both are experiment harnesses that invoke
+# models on purpose; the grader, metrics and runner beside them stay strictly
+# deterministic, which is the property this test protects.
+LLM_EXEMPT = {("benchmark", "baseline.py"), ("benchmark", "sweep.py")}
 
 VENDOR_MODULES = ("google.genai", "google.generativeai", "openai", "anthropic", "langchain")
 VENDOR_ALLOWED_PACKAGES = ("llm", "companyagent")
@@ -108,6 +113,24 @@ def test_core_has_no_internal_dependencies_beyond_core() -> None:
                 offenders.append(f"{module_path.name} imports {imported}")
 
     assert not offenders, f"core must not depend on higher layers. Offenders: {offenders}"
+
+
+def test_the_exemption_list_stays_small_and_deliberate() -> None:
+    """Every exemption weakens the boundary, so each must be justified.
+
+    Two modules invoke models on purpose: the baseline (D-007) and the agent
+    sweep (P8.2). If this list grows, the guard is being edited to fit the code
+    rather than the code to fit the guard.
+    """
+    assert LLM_EXEMPT == {("benchmark", "baseline.py"), ("benchmark", "sweep.py")}
+
+
+def test_grader_and_metrics_are_never_exempt() -> None:
+    """The modules that produce published numbers must not call a model."""
+    for module in ("grader.py", "metrics.py", "runner.py"):
+        assert ("benchmark", module) not in LLM_EXEMPT
+        offenders = find_llm_offenders(PACKAGE_ROOT, "benchmark")
+        assert not any(module in o for o in offenders)
 
 
 def test_deterministic_packages_exist() -> None:

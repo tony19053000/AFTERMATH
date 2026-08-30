@@ -5,7 +5,7 @@
 
 ---
 
-# Overall Completion: 85%
+# Overall Completion: 88%
 
 **Derivation.** Completion is the weighted sum of phase completion from `docs/PHASES.md`. It is never estimated by feel.
 
@@ -19,11 +19,11 @@
 | P5 Minimal forensic pipeline (MVP) | 14 | 100% | 14.0 |
 | P6 Immunity Vault | 8 | 100% | 8.0 |
 | P7 Baseline & benchmark | 10 | 100% | 10.0 |
-| P8 Swarm expansion & agent-count study | 10 | 70% | 7.0 |
+| P8 Swarm expansion & agent-count study | 10 | 100% | 10.0 |
 | P9 Frontend | 8 | 0% | 0.0 |
 | P10 Hardening & demo | 4 | 0% | 0.0 |
 | P11 TEE vault *(optional, unweighted)* | 0 | 0% | 0.0 |
-| **Total** | **100** | | **85.0** |
+| **Total** | **100** | | **88.0** |
 
 Within a phase, % done = satisfied acceptance criteria ÷ total acceptance criteria for that phase.
 
@@ -31,7 +31,7 @@ Within a phase, % done = satisfied acceptance criteria ÷ total acceptance crite
 
 ## Current phase
 
-**P8 — Swarm expansion & agent-count study.** In progress (P8.1, P8.3 done; P8.2 sweep running).
+**P8 — Swarm expansion & agent-count study.** Complete.
 
 **P8.1 result: the sweep fallback lifted AFTERMATH 0.75 → 0.90, now TIED with the baseline.** Measured against the P7 cassette so agent answers were identical and the change is attributable to the orchestration alone. The agent pipeline still does not beat the deterministic sweep (0.95).
 
@@ -39,9 +39,11 @@ Within a phase, % done = satisfied acceptance criteria ÷ total acceptance crite
 
 **P8.3 result: repair coverage 10/20 → 16/20**, and the immunity suite caught a **guard interaction that was less safe than either guard alone** — `rederive_approval` deciding on an amount `bound_refund_to_order_total` was about to correct, issuing an unapproved over-limit refund. Fixed by making guard precedence explicit.
 
+**P8.2 result: more investigators raise recall (0.70 → 0.80 → 0.85) at 3.07× then 1.66× the tokens — and buy nothing the deterministic fallback does not already provide free.** Production configuration: **1 investigator**. The swarm was not expanded, because the measurement did not justify it (D-008, D-021).
+
 ## Current objective
 
-**P8.2** — the agent-count sweep (1/3/5 investigators), measuring hypothesis recall against token cost. Since P8.1's fallback floors localization at the deterministic sweep, recall is the metric that isolates what investigators actually contribute. A null result is a publishable finding (D-008, D-020).
+Begin **P9 — Frontend**: Incident Lab, Evidence Board, Replay Lab, Repair Tournament, Immunity Vault. Hard rule from the outset — every displayed value reads from a stored artifact in `data/results/` or the API, and any "running" indicator maps to real backend state.
 
 ## Completed phases
 
@@ -67,12 +69,12 @@ Within a phase, % done = satisfied acceptance criteria ÷ total acceptance crite
 1. ~~**P8.1** — sweep fallback.~~ Done: 0.75 → 0.90, before/after published.
 2. **P8.2** — investigator-count sweep (1/3/5/7) against the 0.95 deterministic ceiling, measuring accuracy, latency, and token cost.
 3. ~~**P8.3** — add `bound_refund_to_order_total`.~~ Done: 10/20 → 16/20, before/after published; found and fixed a guard-ordering safety bug.
-4. **P8.4** — repair tournament with genuinely distinct strategies.
-5. **P8.5** — decide the production configuration on measurement; report a null result as a result.
+4. ~~**P8.4/P8.5** — decide the production configuration on measurement.~~ Done: 1 investigator, recorded as D-021.
+5. **P9.1** — read-only UI over the committed artifacts (benchmark results, incident set, immunity vault) before anything live.
 
 ## Failing tests
 
-None. **830 passed** offline (`pytest backend/tests -q`, ~5.2s), plus 5 opt-in `live` tests.
+None. **832 passed** offline (`pytest backend/tests -q`, ~5.2s), plus 5 opt-in `live` tests.
 
 ## Known bugs
 
@@ -115,6 +117,16 @@ None known.
 Artifacts: `data/results/benchmark.json`, `data/results/benchmark_deterministic.json`. Every number above is read from those files.
 
 **The baseline beats the agent pipeline.** AFTERMATH's deficit is entirely abstentions — it refuses to answer without evidence, and the metric does not penalize guessing. The deterministic configuration beating the baseline is what localizes the weakness to the agent layer.
+
+## Agent-count study (P8.2)
+
+| investigators | recall | tokens/incident |
+|---:|---:|---:|
+| **1 (production)** | 0.70 | **2,093** |
+| 3 | 0.80 | 6,424 |
+| 5 | 0.85 | 10,694 |
+
+Artifact: `data/results/investigator_recall_sweep.json`. Recall rises but does not convert into localization, because the exhaustive fallback already floors it. **Not measured:** whether 3/5 investigators change end-to-end localization — a follow-up costing ~300 live calls.
 
 ## Runtime-agent status
 

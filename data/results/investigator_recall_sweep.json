@@ -1,0 +1,84 @@
+{
+  "arms": [
+    {
+      "completion_tokens": 7131,
+      "fallbacks": 0,
+      "incidents": 20,
+      "investigators": 1,
+      "latency_seconds": 135.21561694145203,
+      "localization_rate": 0.0,
+      "localized": 0,
+      "prompt_tokens": 34721,
+      "recall": 0.7,
+      "recall_hits": 14,
+      "tokens_per_incident": 2092.6
+    },
+    {
+      "completion_tokens": 21273,
+      "fallbacks": 0,
+      "incidents": 20,
+      "investigators": 3,
+      "latency_seconds": 387.00142097473145,
+      "localization_rate": 0.0,
+      "localized": 0,
+      "prompt_tokens": 107203,
+      "recall": 0.8,
+      "recall_hits": 16,
+      "tokens_per_incident": 6423.8
+    },
+    {
+      "completion_tokens": 35345,
+      "fallbacks": 0,
+      "incidents": 20,
+      "investigators": 5,
+      "latency_seconds": 359.50656962394714,
+      "localization_rate": 0.0,
+      "localized": 0,
+      "prompt_tokens": 178525,
+      "recall": 0.85,
+      "recall_hits": 17,
+      "tokens_per_incident": 10693.5
+    }
+  ],
+  "artifact_hash": "sha256:a41ce6b704fb264f272fcc06ab0d0e01a2ea88f65c54970a57766dc6cd578ab1",
+  "incident_ids": [
+    "I-001",
+    "I-002",
+    "I-003",
+    "I-004",
+    "I-005",
+    "I-006",
+    "I-007",
+    "I-008",
+    "I-009",
+    "I-010",
+    "I-011",
+    "I-012",
+    "I-013",
+    "I-014",
+    "I-015",
+    "I-016",
+    "I-017",
+    "I-018",
+    "I-019",
+    "I-020"
+  ],
+  "marginal_gain": [
+    {
+      "from_investigators": 1,
+      "localization_delta": 0.0,
+      "recall_delta": 0.10000000000000009,
+      "to_investigators": 3,
+      "token_delta": 86624,
+      "token_multiple": 3.069769664532161
+    },
+    {
+      "from_investigators": 3,
+      "localization_delta": 0.0,
+      "recall_delta": 0.04999999999999993,
+      "to_investigators": 5,
+      "token_delta": 85394,
+      "token_multiple": 1.664668887574333
+    }
+  ]
+}

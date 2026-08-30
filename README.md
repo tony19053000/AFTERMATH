@@ -6,7 +6,7 @@
 >
 > Root cause correctly localized in **5/5 seed incidents**, both on the deterministic path and against live agents (where **5/5 hypotheses were agent-proposed**, not fallback). Repairs are measured on prevention *and* on whether they break legitimate cases; 4/5 incidents get an accepted repair, and the fifth is reported as having none rather than being given a bad one. 386 tests, all offline.
 >
-> The baseline initially **beat** AFTERMATH's agent pipeline (0.90 vs 0.75). One measured fix closed the gap to a **tie**. AFTERMATH's *deterministic* configuration scores **0.95** and beats the baseline. All three numbers are published below. 830 tests, all offline.
+> The baseline initially **beat** AFTERMATH's agent pipeline (0.90 vs 0.75). One measured fix closed the gap to a **tie**. AFTERMATH's *deterministic* configuration scores **0.95** and beats the baseline. All three numbers are published below. 832 tests, all offline.
 
 ---
 
@@ -110,7 +110,7 @@ The backend runs fully offline on a deterministic mock provider — no API key n
 uv venv --python 3.12 .venv
 uv pip install --python .venv/bin/python -e "backend[dev]"
 
-.venv/bin/python -m pytest backend/tests -q                 # 830 passed
+.venv/bin/python -m pytest backend/tests -q                 # 832 passed
 .venv/bin/python -m uvicorn aftermath.api.app:app --port 8000
 curl -s localhost:8000/health
 ```
