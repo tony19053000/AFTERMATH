@@ -1,6 +1,6 @@
 # AFTERMATH — Testing Strategy
 
-**Status:** live as of P7. 832 tests, fully offline and deterministic.
+**Status:** live as of P7. 848 tests, fully offline and deterministic.
 
 ---
 
@@ -72,7 +72,7 @@ uv pip install --python .venv/bin/python -e "backend[dev]"
 
 Markers: `slow` · `live` · `replay` · `benchmark` · `security`. `addopts` excludes `live` by default, so the suite never needs a network or a key.
 
-**Current:** 832 passed offline (~5.2s), plus 5 `live` tests that pass against the real provider when run deliberately.
+**Current:** 848 passed offline (~5.2s), plus 5 `live` tests that pass against the real provider when run deliberately.
 
 **Hermeticity.** An autouse fixture isolates tests from the repository `.env` and from `GEMINI_API_KEY` (D-013). The default run behaves identically whether or not a key is present on the machine — verified both ways. `live`-marked tests opt out and are the only ones permitted to reach a network.
 

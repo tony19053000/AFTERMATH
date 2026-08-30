@@ -353,3 +353,23 @@ This is D-008 honoured when the answer was inconvenient: the project committed t
 **Honest limit.** The sweep measured recall and cost, not end-to-end localization per arm. The fallback makes a large localization difference unlikely, but that is an expectation, not a measurement, and it is recorded as an open follow-up.
 
 **Reversible?** Yes — one parameter, and the harness to re-decide it is committed.
+
+---
+
+## D-022 · 2026-08-30 · Frontend is a single served HTML page, not a Next.js app
+
+**Decision.** The console is one `frontend/index.html` served by our own FastAPI backend. No build step, no npm, no framework.
+
+**Alternatives considered.** (a) Next.js as named in the original requirements; (b) React via CDN, no build; (c) a single served HTML page.
+
+**Reason.** The requirements named "React or Next.js" before the product's shape was known. What P9 actually needs is a **read-only view over stored artifacts** — five tables, a trace list, and one button that runs the immunity suite. A Next.js app would add a toolchain, a node_modules tree, and a second server for a page with no client-side routing, no auth, and no state beyond the tab you are on.
+
+The deciding constraint is verification. `CLAUDE.md` §4 says the UI must reflect real backend state and show no fabricated value. A single file can be *checked* for that — tests assert the page hard-codes no result, declares no fallback data, loads nothing cross-origin, and that every path it fetches returns 200 from the real API. Those checks are the point of the phase, and they are much harder to make meaningful across a compiled bundle.
+
+Serving it from our own backend also keeps a standing security rule true by construction: the browser talks only to us, so no provider key can ever reach it.
+
+This is a scope change from the requirements, recorded rather than made silently. **It is a technology choice, not a change of purpose** — the anti-drift rule explicitly permits the former (D-006 made the same distinction for the LLM provider).
+
+**Consequences.** No build step; `uvicorn` serves the console at `/`. If the product later needs real client-side state — editing, auth, multi-user — this becomes a genuine constraint and a framework should be reconsidered. Recorded here so that decision is deliberate rather than inherited.
+
+**Reversible?** Yes. The API is the contract, and it is framework-agnostic.

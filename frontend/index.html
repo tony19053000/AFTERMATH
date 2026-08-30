@@ -1,0 +1,286 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AFTERMATH — Forensic Console</title>
+<style>
+  :root{
+    --bg:#0e1116; --panel:#161b22; --line:#262d36; --ink:#e6edf3; --dim:#8b949e;
+    --ok:#3fb950; --bad:#f85149; --warn:#d29922; --accent:#58a6ff; --mono:ui-monospace,SFMono-Regular,Menlo,monospace;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.5 system-ui,-apple-system,Segoe UI,sans-serif}
+  header{padding:18px 24px;border-bottom:1px solid var(--line);display:flex;gap:16px;align-items:baseline;flex-wrap:wrap}
+  h1{font-size:17px;margin:0;letter-spacing:.02em}
+  .tag{color:var(--dim);font-size:12px}
+  nav{display:flex;gap:2px;padding:0 16px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+  nav button{background:none;border:0;color:var(--dim);padding:11px 14px;cursor:pointer;font-size:13px;border-bottom:2px solid transparent}
+  nav button[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--accent)}
+  main{padding:22px 24px;max-width:1180px}
+  section[hidden]{display:none}
+  h2{font-size:15px;margin:0 0 4px}
+  .sub{color:var(--dim);font-size:12.5px;margin:0 0 16px;max-width:70ch}
+  table{border-collapse:collapse;width:100%;font-size:13px}
+  th,td{text-align:left;padding:7px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{color:var(--dim);font-weight:500;font-size:11.5px;text-transform:uppercase;letter-spacing:.04em}
+  td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}
+  code,.mono{font-family:var(--mono);font-size:12.5px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:7px;padding:14px 16px;margin-bottom:14px}
+  .row{display:flex;gap:14px;flex-wrap:wrap}
+  .row>.card{flex:1;min-width:210px}
+  .big{font-size:26px;font-weight:600;font-variant-numeric:tabular-nums}
+  .ok{color:var(--ok)} .bad{color:var(--bad)} .warn{color:var(--warn)} .dim{color:var(--dim)}
+  .bar{height:7px;background:#21262d;border-radius:4px;overflow:hidden;margin-top:5px}
+  .bar>i{display:block;height:100%;background:var(--accent)}
+  .pill{display:inline-block;padding:1px 7px;border-radius:10px;font-size:11px;border:1px solid var(--line)}
+  .pill.ok{border-color:#238636;background:#0f2a16}
+  .pill.bad{border-color:#8b2a25;background:#2a1210}
+  .step{border-left:2px solid var(--line);padding:5px 0 5px 12px;margin-left:6px}
+  .step.cause{border-left-color:var(--bad);background:#1d1416}
+  .note{color:var(--dim);font-size:12px;border-left:2px solid var(--line);padding-left:10px;margin:12px 0}
+  button.act{background:#21262d;border:1px solid var(--line);color:var(--ink);padding:5px 11px;border-radius:5px;cursor:pointer;font-size:12.5px}
+  button.act:hover{border-color:var(--accent)}
+  .err{color:var(--bad);font-family:var(--mono);font-size:12.5px}
+  select{background:#21262d;border:1px solid var(--line);color:var(--ink);padding:5px;border-radius:5px}
+</style>
+</head>
+<body>
+<header>
+  <h1>AFTERMATH</h1>
+  <span class="tag">From Agent Incident to Verified Immunity</span>
+  <span class="tag" id="src" style="margin-left:auto"></span>
+</header>
+<nav id="tabs"></nav>
+<main>
+  <section id="v-benchmark"></section>
+  <section id="v-incidents" hidden></section>
+  <section id="v-evidence" hidden></section>
+  <section id="v-sweep" hidden></section>
+  <section id="v-immunity" hidden></section>
+</main>
+<script>
+const API = "/api";
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s ?? "").replace(/[&<>]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;"}[c]));
+const pct = (x) => (x * 100).toFixed(0) + "%";
+
+// Every value rendered comes from one of these calls. There is no fallback
+// data: if an artifact is missing the view says so rather than showing zeros.
+async function get(path) {
+  const r = await fetch(API + path);
+  if (!r.ok) throw new Error((await r.json().catch(() => ({}))).detail || r.status);
+  return r.json();
+}
+const fail = (el, e) => el.innerHTML = `<p class="err">not available — ${esc(e.message)}</p>`;
+
+const VIEWS = [
+  ["benchmark", "Benchmark", renderBenchmark],
+  ["incidents", "Incident Lab", renderIncidents],
+  ["evidence", "Evidence Board", renderEvidence],
+  ["sweep", "Agent Study", renderSweep],
+  ["immunity", "Immunity Vault", renderImmunity],
+];
+
+VIEWS.forEach(([id, label]) => {
+  const b = document.createElement("button");
+  b.textContent = label; b.dataset.view = id;
+  b.onclick = () => show(id);
+  $("tabs").appendChild(b);
+});
+
+let loaded = {};
+function show(id) {
+  VIEWS.forEach(([v]) => {
+    $("v-" + v).hidden = v !== id;
+    document.querySelector(`[data-view="${v}"]`).setAttribute("aria-selected", v === id);
+  });
+  if (!loaded[id]) { loaded[id] = true; VIEWS.find(v => v[0] === id)[2](); }
+}
+
+async function renderBenchmark() {
+  const el = $("v-benchmark");
+  el.innerHTML = "<p class='dim'>loading…</p>";
+  try {
+    const [b, h] = await Promise.all([get("/benchmark"), get("/benchmark/history")]);
+    const a = b.aftermath, base = b.baseline;
+    const lead = b.delta > 0 ? "ok" : b.delta < 0 ? "bad" : "warn";
+    el.innerHTML = `
+      <h2>Benchmark</h2>
+      <p class="sub">AFTERMATH against a fair single-LLM baseline on an identical
+      incident set, scored by an identical deterministic grader. Only an exact
+      match counts; a near miss is reported and never credited.</p>
+      <div class="row">
+        <div class="card"><div class="dim">AFTERMATH</div>
+          <div class="big">${pct(b.aftermath_localization_rate)}</div>
+          <div class="bar"><i style="width:${b.aftermath_localization_rate*100}%"></i></div>
+          <div class="dim" style="margin-top:6px">${a.exact} exact · ${a.wrong} wrong · ${a.no_answer} abstained</div></div>
+        <div class="card"><div class="dim">Baseline (single LLM)</div>
+          <div class="big">${pct(b.baseline_localization_rate)}</div>
+          <div class="bar"><i style="width:${b.baseline_localization_rate*100}%"></i></div>
+          <div class="dim" style="margin-top:6px">${base.exact} exact · ${base.wrong} wrong · ${base.no_answer} abstained</div></div>
+        <div class="card"><div class="dim">Verdict</div>
+          <div class="big ${lead}">${esc(b.verdict)}</div>
+          <div class="dim" style="margin-top:6px">delta ${b.delta >= 0 ? "+" : ""}${b.delta.toFixed(2)} over ${b.incident_ids.length} incidents</div></div>
+      </div>
+      <div class="note">AFTERMATH abstains when no intervention prevents the failure.
+      The metric does not penalise guessing, which favours a system that always answers.</div>
+      <div class="card"><strong>Run history</strong>
+        <table style="margin-top:8px"><thead><tr><th>run</th><th class="n">AFTERMATH</th><th class="n">baseline</th><th>verdict</th></tr></thead><tbody>
+        ${h.runs.map(r => `<tr><td>${esc(r.label)}<div class="dim mono">${esc(r.artifact)}</div></td>
+          <td class="n">${pct(r.aftermath)}</td><td class="n">${pct(r.baseline)}</td><td>${esc(r.verdict)}</td></tr>`).join("")}
+        </tbody></table></div>
+      <div class="card"><strong>Per incident</strong>
+        <table style="margin-top:8px"><thead><tr><th>incident</th><th>true cause</th><th>AFTERMATH</th><th>baseline</th></tr></thead><tbody>
+        ${b.per_incident.map(r => `<tr>
+          <td class="mono">${esc(r.incident_id)}</td>
+          <td class="mono">${esc(r.true_causal_step)}</td>
+          <td><span class="pill ${r.aftermath === "exact" ? "ok" : "bad"}">${esc(r.aftermath)}</span> <span class="mono dim">${esc(r.aftermath_answer ?? "—")}</span></td>
+          <td><span class="pill ${r.baseline === "exact" ? "ok" : "bad"}">${esc(r.baseline)}</span> <span class="mono dim">${esc(r.baseline_answer ?? "—")}</span></td>
+        </tr>`).join("")}
+        </tbody></table></div>
+      <p class="dim mono">artifact ${esc(b.artifact_hash)}</p>`;
+  } catch (e) { fail(el, e); }
+}
+
+async function renderIncidents() {
+  const el = $("v-incidents");
+  el.innerHTML = "<p class='dim'>loading…</p>";
+  try {
+    const d = await get("/incidents");
+    el.innerHTML = `
+      <h2>Incident Lab</h2>
+      <p class="sub">${d.count} synthetic incidents. Each fault is injected under a
+      controlled seed, so the true causal step is recorded by the injector — never
+      inferred, never asked of a model.</p>
+      <table><thead><tr><th>id</th><th>fault</th><th>layer</th><th>scenario</th>
+        <th>true cause</th><th class="n">steps</th><th>violated invariant</th></tr></thead><tbody>
+      ${d.incidents.map(i => `<tr>
+        <td class="mono">${esc(i.incident_id)}</td>
+        <td>${esc(i.fault_kind)}<div class="dim" style="max-width:34ch">${esc(i.observed_behavior)}</div></td>
+        <td class="dim">${esc(i.fault_layer)}</td>
+        <td class="mono dim">${esc(i.scenario_id)}</td>
+        <td class="mono bad">${esc(i.true_causal_step)}</td>
+        <td class="n">${i.step_count}</td>
+        <td class="mono dim">${esc(i.failing_oracle)}</td></tr>`).join("")}
+      </tbody></table>`;
+  } catch (e) { fail(el, e); }
+}
+
+async function renderEvidence() {
+  const el = $("v-evidence");
+  el.innerHTML = "<p class='dim'>loading…</p>";
+  try {
+    const d = await get("/incidents");
+    el.innerHTML = `
+      <h2>Evidence Board</h2>
+      <p class="sub">The real recorded trace for one incident. The step highlighted
+      in red is the injector's ground truth — where the wrong value entered.</p>
+      <select id="pick">${d.incidents.map(i => `<option value="${esc(i.incident_id)}">${esc(i.incident_id)} — ${esc(i.fault_kind)}</option>`).join("")}</select>
+      <div id="trace" style="margin-top:14px"></div>`;
+    const draw = async (id) => {
+      const t = $("trace");
+      t.innerHTML = "<p class='dim'>loading…</p>";
+      try {
+        const tr = await get(`/incidents/${id}/trace`);
+        const cause = tr.injection?.true_causal_step;
+        t.innerHTML = `
+          <div class="card"><span class="pill bad">${esc(tr.outcome.status)}</span>
+            <strong style="margin-left:8px">${esc(tr.outcome.oracle)}</strong>
+            <div class="dim" style="margin-top:4px">${esc(tr.outcome.detail)}</div>
+            <div class="dim mono" style="margin-top:6px">${esc(tr.content_hash)}</div></div>
+          ${tr.steps.map(s => `
+            <div class="step ${s.step_id === cause ? "cause" : ""}">
+              <span class="mono dim">${esc(s.step_id)}</span>
+              <span class="mono">${esc(s.type)}</span>
+              ${s.tool ? `<span class="mono accent"> ${esc(s.tool)}</span>` : ""}
+              ${s.step_id === cause ? '<span class="pill bad" style="margin-left:6px">injected cause</span>' : ""}
+              <div class="dim mono" style="max-width:95ch;overflow-x:auto">${esc(
+                JSON.stringify(s.result ?? s.arguments ?? s.thought ?? s.text ?? s.detail ?? "").slice(0, 200))}</div>
+            </div>`).join("")}`;
+      } catch (e) { fail(t, e); }
+    };
+    $("pick").onchange = (e) => draw(e.target.value);
+    draw(d.incidents[0].incident_id);
+  } catch (e) { fail(el, e); }
+}
+
+async function renderSweep() {
+  const el = $("v-sweep");
+  el.innerHTML = "<p class='dim'>loading…</p>";
+  try {
+    const d = await get("/sweep");
+    const max = Math.max(...d.arms.map(a => a.tokens_per_incident));
+    el.innerHTML = `
+      <h2>Agent-count study</h2>
+      <p class="sub">Does adding investigators earn its cost? Recall is whether the
+      union of N investigators put the true cause on the table at all — the metric
+      that isolates what agents contribute, since the deterministic fallback already
+      floors localization.</p>
+      <table><thead><tr><th class="n">investigators</th><th class="n">recall</th>
+        <th class="n">tokens / incident</th><th>relative cost</th></tr></thead><tbody>
+      ${d.arms.map(a => `<tr>
+        <td class="n mono">${a.investigators}</td>
+        <td class="n">${pct(a.recall)}</td>
+        <td class="n">${a.tokens_per_incident.toFixed(0)}</td>
+        <td><div class="bar" style="width:210px"><i style="width:${a.tokens_per_incident/max*100}%"></i></div></td></tr>`).join("")}
+      </tbody></table>
+      <div class="card" style="margin-top:14px"><strong>Marginal gain</strong>
+        <table style="margin-top:8px"><thead><tr><th>step</th><th class="n">recall</th><th class="n">token cost</th></tr></thead><tbody>
+        ${d.marginal_gain.map(m => `<tr><td class="mono">${m.from_investigators} → ${m.to_investigators}</td>
+          <td class="n ok">+${m.recall_delta.toFixed(2)}</td>
+          <td class="n bad">×${m.token_multiple.toFixed(2)}</td></tr>`).join("")}
+        </tbody></table></div>
+      <div class="note">Recall rises, but the extra recall buys avoidance of the
+      exhaustive fallback — which the deterministic engine already performs for free.
+      Production configuration is <strong>1 investigator</strong>.</div>`;
+  } catch (e) { fail(el, e); }
+}
+
+async function renderImmunity() {
+  const el = $("v-immunity");
+  el.innerHTML = "<p class='dim'>loading…</p>";
+  try {
+    const d = await get("/immunity");
+    const g = d.gate;
+    el.innerHTML = `
+      <h2>Immunity Vault</h2>
+      <p class="sub">${d.cases.length} verified incidents kept as permanent regression
+      cases. Each must fail against the unrepaired agent and pass against the repaired
+      one — both asserted before a case is admitted.</p>
+      <div class="row">
+        <div class="card"><div class="dim">Unrepaired agent</div>
+          <div class="big bad">${g.unrepaired.protected}/${d.cases.length}</div>
+          <div class="dim">${esc(g.unrepaired.verdict)}</div></div>
+        <div class="card"><div class="dim">With all guardrails</div>
+          <div class="big ok">${g.repaired.protected}/${d.cases.length}</div>
+          <div class="dim">${esc(g.repaired.verdict)}</div></div>
+      </div>
+      <div class="card"><strong>Drop a guardrail</strong>
+        <p class="dim" style="margin:4px 0 10px">Runs the suite for real, without that guard.</p>
+        ${d.guardrails.map(r => `<button class="act" data-g="${esc(r)}" style="margin:0 6px 6px 0">${esc(r)}</button>`).join("")}
+        <div id="drop" style="margin-top:10px"></div></div>
+      <table><thead><tr><th>case</th><th>incident</th><th>root cause</th><th>verified repair</th><th class="n">effect</th></tr></thead><tbody>
+      ${d.cases.map(c => `<tr><td class="mono">${esc(c.case_id)}</td><td class="mono dim">${esc(c.incident_id)}</td>
+        <td class="mono bad">${esc(c.root_cause_step)}</td><td>${esc(c.repair)}</td>
+        <td class="n ok">+${c.effect_size.toFixed(2)}</td></tr>`).join("")}
+      </tbody></table>`;
+    el.querySelectorAll("[data-g]").forEach(b => b.onclick = async () => {
+      const out = $("drop");
+      out.innerHTML = "<span class='dim'>running suite…</span>";
+      try {
+        const r = await get("/immunity/drop/" + b.dataset.g);
+        out.innerHTML = `<span class="pill ${r.regressions.length ? "bad" : "ok"}">${esc(r.verdict)}</span>
+          <span class="dim" style="margin-left:8px">${r.protected} protected, ${r.regressions.length} regression(s)</span>
+          ${r.regressions.map(x => `<div class="dim mono" style="margin-top:5px">${esc(x.case_id)} — ${esc(x.detail)}</div>`).join("")}`;
+      } catch (e) { fail(out, e); }
+    });
+  } catch (e) { fail(el, e); }
+}
+
+get("/benchmark").then(b => $("src").textContent =
+  `${b.incident_ids.length} incidents · every value read from data/results/`).catch(() => {});
+show("benchmark");
+</script>
+</body>
+</html>

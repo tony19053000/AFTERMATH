@@ -5,7 +5,7 @@
 
 ---
 
-# Overall Completion: 88%
+# Overall Completion: 96%
 
 **Derivation.** Completion is the weighted sum of phase completion from `docs/PHASES.md`. It is never estimated by feel.
 
@@ -20,10 +20,10 @@
 | P6 Immunity Vault | 8 | 100% | 8.0 |
 | P7 Baseline & benchmark | 10 | 100% | 10.0 |
 | P8 Swarm expansion & agent-count study | 10 | 100% | 10.0 |
-| P9 Frontend | 8 | 0% | 0.0 |
+| P9 Frontend | 8 | 100% | 8.0 |
 | P10 Hardening & demo | 4 | 0% | 0.0 |
 | P11 TEE vault *(optional, unweighted)* | 0 | 0% | 0.0 |
-| **Total** | **100** | | **88.0** |
+| **Total** | **100** | | **96.0** |
 
 Within a phase, % done = satisfied acceptance criteria ÷ total acceptance criteria for that phase.
 
@@ -31,7 +31,7 @@ Within a phase, % done = satisfied acceptance criteria ÷ total acceptance crite
 
 ## Current phase
 
-**P8 — Swarm expansion & agent-count study.** Complete.
+**P9 — Frontend.** Complete. A forensic console served by our own backend, reading only stored artifacts.
 
 **P8.1 result: the sweep fallback lifted AFTERMATH 0.75 → 0.90, now TIED with the baseline.** Measured against the P7 cassette so agent answers were identical and the change is attributable to the orchestration alone. The agent pipeline still does not beat the deterministic sweep (0.95).
 
@@ -43,7 +43,7 @@ Within a phase, % done = satisfied acceptance criteria ÷ total acceptance crite
 
 ## Current objective
 
-Begin **P9 — Frontend**: Incident Lab, Evidence Board, Replay Lab, Repair Tournament, Immunity Vault. Hard rule from the outset — every displayed value reads from a stored artifact in `data/results/` or the API, and any "running" indicator maps to real backend state.
+Begin **P10 — Hardening, reproducibility, demo**: Docker, clean-clone reproduction, secrets scan over history, README with real numbers, and an honest statement of limitations.
 
 ## Completed phases
 
@@ -77,7 +77,7 @@ Begin **P9 — Frontend**: Incident Lab, Evidence Board, Replay Lab, Repair Tour
 
 ## Failing tests
 
-None. **832 passed** offline (`pytest backend/tests -q`, ~5.2s), plus 5 opt-in `live` tests.
+None. **848 passed** offline (`pytest backend/tests -q`, ~5.2s), plus 5 opt-in `live` tests.
 
 ## Known bugs
 
@@ -137,7 +137,7 @@ Artifact: `data/results/investigator_recall_sweep.json`. Recall rises but does n
 
 ## UI status
 
-**Not started** (P9). Deliberately sequenced after the evidence pipeline works.
+**Built** (P9). Five views over stored artifacts at `http://127.0.0.1:8000/`. Deleting an artifact produces a 404 and the view says "not available" — verified by deleting `benchmark.json` and checking the response, not by assuming it.
 
 ## Security / TEE status
 

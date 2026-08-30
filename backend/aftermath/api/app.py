@@ -9,11 +9,14 @@ from __future__ import annotations
 from typing import Any
 
 from fastapi import FastAPI
+from fastapi.responses import FileResponse
 from pydantic import BaseModel
 
-from aftermath.config import Settings, get_settings
+from aftermath.api.routes import router
+from aftermath.config import REPO_ROOT, Settings, get_settings
 
 API_VERSION = "0.1.0"
+FRONTEND = REPO_ROOT / "frontend" / "index.html"
 
 
 class HealthResponse(BaseModel):
@@ -33,6 +36,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         description="From Agent Incident to Verified Immunity.",
     )
     app.state.settings = resolved
+    app.include_router(router, prefix="/api")
 
     @app.get("/health", response_model=HealthResponse)
     def health() -> dict[str, Any]:
@@ -42,6 +46,16 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             "llm_provider": resolved.llm_provider.value,
             "deterministic_provider": resolved.llm_provider.value == "mock",
         }
+
+    @app.get("/", include_in_schema=False)
+    def console() -> FileResponse:
+        """Serve the console from our own backend.
+
+        The browser therefore talks only to us, and never holds a provider key —
+        a standing security rule, and the reason the UI is served rather than
+        opened from the filesystem against a cross-origin API.
+        """
+        return FileResponse(FRONTEND)
 
     return app
 
