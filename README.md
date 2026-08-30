@@ -61,9 +61,10 @@ Not a log summarizer. Not an observability dashboard. Not a multi-agent chat fra
 
 | | |
 |---|---|
-| **Incident Lab** | Run scenarios against a monitored agent and watch a controlled failure occur |
-| **Evidence Board** | Hypotheses pinned to real trace steps, strengthened or weakened by experiment |
-| **Replay Lab** | Counterfactual branches with measured failure rates |
+| **Company Demo** | ✅ Built. A monitored customer-support app where the agent visibly fails |
+| **Incident Lab** | ✅ Built. Every benchmark incident, with its ground-truth causal step |
+| **Evidence Board** | ✅ Built. The real trajectory, with the causal step marked |
+| **Replay Lab** | ✅ Built. Counterfactual branches with measured failure rates |
 | **Repair Tournament** | Competing repair strategies compared on test evidence |
 | **Immunity Vault** | ✅ Built. Verified incidents as permanent regression cases; release gating for new agent versions |
 | **Secure Forensic Vault** | *Future, optional.* Confidential handling of sensitive traces |
@@ -101,6 +102,32 @@ Picking one would be choosing a headline, so both are given.
 Every number above is read from `data/results/` — including the superseded 0.75 run, retained because the before/after *is* the evidence that the fix worked. The fairness review of the baseline prompt is [D-017](docs/DECISIONS.md); the reasoning for not tuning the guard library after seeing results is [D-019](docs/DECISIONS.md).
 
 **Limits.** 20 synthetic incidents: one answer moves a rate by 5 points, so a 3-incident gap is suggestive, not conclusive. Results demonstrate mechanism viability, not production accuracy.
+
+## See it work
+
+```bash
+uv venv --python 3.12 .venv
+uv pip install --python .venv/bin/python -e "backend[dev]"
+.venv/bin/python -m uvicorn aftermath.api.app:app --port 8000
+```
+
+Open **http://127.0.0.1:8000/** and follow one incident end to end:
+
+1. **NovaCommerce** — a customer-support console. Click *Run support request*.
+2. Watch the support agent work: look up the customer, read the refund policy,
+   calculate the refund, issue it. Every step shown is a real trace step.
+3. It goes wrong. The order is worth **172.00**; the agent refunds **990.00**.
+   The monitoring badge flips to *Incident captured*.
+4. Click **Investigate with AFTERMATH** — the forensic console opens on **that
+   incident**, not a similar one.
+5. **Evidence Board** shows the trajectory with the causal step marked.
+6. **Replay Lab** re-runs the incident correcting one step at a time and reports
+   the measured effect of each. One prevents the failure; the others do not.
+7. A repair is tested on prevention *and* on whether it breaks legitimate
+   refunds, then **Immunity Vault** shows the case that makes the failure
+   permanently detectable.
+
+Run *Run healthy comparison* first to see the same agent handle it correctly.
 
 ## Quick start
 

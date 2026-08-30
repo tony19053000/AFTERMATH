@@ -12,6 +12,7 @@ from fastapi import FastAPI
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
 
+from aftermath.api.company import router as company_router
 from aftermath.api.routes import router
 from aftermath.config import REPO_ROOT, Settings, get_settings
 
@@ -37,6 +38,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     )
     app.state.settings = resolved
     app.include_router(router, prefix="/api")
+    app.include_router(company_router, prefix="/api")
 
     @app.get("/health", response_model=HealthResponse)
     def health() -> dict[str, Any]:

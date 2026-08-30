@@ -19,12 +19,17 @@ from typing import Any
 from fastapi import APIRouter, HTTPException
 
 from aftermath.config import REPO_ROOT
+from aftermath.forensics.orchestrator import ForensicOrchestrator
 from aftermath.immunity.runner import AgentVersion, run_suite
 from aftermath.immunity.vault import ImmunityVault
 from aftermath.injection.incidents import load_incidents
 from aftermath.injection.runner import run_incident
 
 RESULTS_DIR = REPO_ROOT / "data" / "results"
+# Trials per counterfactual experiment when investigating on request. The agent
+# is deterministic, so a small number establishes the same effect size as a
+# large one and keeps the endpoint responsive.
+EXPERIMENT_TRIALS = 3
 
 router = APIRouter()
 
@@ -90,6 +95,71 @@ def get_trace(incident_id: str) -> dict[str, Any]:
         "injection": trace.injection.model_dump(mode="json") if trace.injection else None,
         "content_hash": trace.content_hash(),
         "steps": [s.model_dump(mode="json") for s in trace.steps],
+    }
+
+
+@router.get("/incidents/{incident_id}/investigation")
+def investigate(incident_id: str) -> dict[str, Any]:
+    """Run the forensic pipeline for one incident and return what it established.
+
+    Executed on request, deterministically and with no model: the hypotheses are
+    the exhaustive candidate set, the effect sizes are measured by replay, and
+    the repair numbers come from actually applying the guard. Nothing here is
+    read from a canned report, so a viewer sees what the engine concludes about
+    *this* incident today.
+
+    Raises:
+        HTTPException: 404 for an unknown incident.
+    """
+    incidents = load_incidents()
+    if incident_id not in incidents:
+        raise HTTPException(status_code=404, detail=f"unknown incident {incident_id}")
+
+    definition = incidents[incident_id]
+    trace = run_incident(definition).run.trace
+    report = ForensicOrchestrator(None, trials=EXPERIMENT_TRIALS).investigate(definition)
+
+    vault_case = next(
+        (c for c in ImmunityVault().load_all() if c.incident_id == incident_id), None
+    )
+
+    return {
+        "incident_id": incident_id,
+        "description": definition.description,
+        "expected_behavior": definition.expected_behavior,
+        "observed_behavior": definition.observed_behavior,
+        "expected_safe_behavior": definition.expected_safe_behavior,
+        "severity": definition.severity.value,
+        "scenario_id": definition.scenario_id,
+        "step_count": len(trace.steps),
+        "outcome": trace.outcome.model_dump(mode="json"),
+        "true_causal_step": trace.injection.true_causal_step,
+        "hypothesis_source": report.hypothesis_source.value,
+        "experiments": [
+            {
+                "step_id": e["intervention"]["step_id"],
+                "kind": e["intervention"]["kind"],
+                "baseline_failures": e["baseline"]["failures"],
+                "intervened_failures": e["intervened"]["failures"],
+                "trials": e["baseline"]["trials"],
+                "effect_size": e["effect_size"],
+                "prevented": e["prevented"],
+                "artifact_hash": e["artifact_hash"],
+            }
+            for e in report.experiments
+        ],
+        "root_cause_step": report.root_cause_step,
+        "resolution": report.resolution.value,
+        "resolved_by_measurement": report.resolved_by_measurement,
+        "repair": report.repair,
+        "repair_accepted": report.repair_accepted,
+        # Immunity is claimed only when a case genuinely exists in the vault.
+        "immunity": {
+            "acquired": vault_case is not None,
+            "case_id": vault_case.case_id if vault_case else None,
+            "verified_repair": vault_case.verified_repair.kind.value if vault_case else None,
+        },
+        "agent_errors": report.agent_errors,
     }
 
 

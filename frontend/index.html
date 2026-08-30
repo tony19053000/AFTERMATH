@@ -9,6 +9,10 @@
     --bg:#0e1116; --panel:#161b22; --line:#262d36; --ink:#e6edf3; --dim:#8b949e;
     --ok:#3fb950; --bad:#f85149; --warn:#d29922; --accent:#58a6ff; --mono:ui-monospace,SFMono-Regular,Menlo,monospace;
   }
+  /* The company app is deliberately a different product: light, calm, ordinary
+     business software. The visual break IS the story — operations vs forensics. */
+  --co-bg:#f6f8fa; --co-panel:#fff; --co-line:#d8dee4; --co-ink:#1f2328; --co-dim:#656d76;
+  --co-accent:#0969da; --co-bad:#cf222e; --co-ok:#1a7f37; --co-warn:#9a6700;
   *{box-sizing:border-box}
   body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.5 system-ui,-apple-system,Segoe UI,sans-serif}
   header{padding:18px 24px;border-bottom:1px solid var(--line);display:flex;gap:16px;align-items:baseline;flex-wrap:wrap}
@@ -18,6 +22,42 @@
   nav button{background:none;border:0;color:var(--dim);padding:11px 14px;cursor:pointer;font-size:13px;border-bottom:2px solid transparent}
   nav button[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--accent)}
   main{padding:22px 24px;max-width:1180px}
+  /* ---- company (operations) surface ---- */
+  body.ops{background:var(--co-bg);color:var(--co-ink)}
+  body.ops header{background:#fff;border-bottom:1px solid var(--co-line)}
+  body.ops nav{background:#fff;border-bottom:1px solid var(--co-line)}
+  body.ops nav button{color:var(--co-dim)}
+  body.ops nav button[aria-selected="true"]{color:var(--co-ink);border-bottom-color:var(--co-accent)}
+  body.ops .tag{color:var(--co-dim)}
+  .ops-grid{display:grid;grid-template-columns:1fr 1.25fr 1fr;gap:14px;align-items:start}
+  @media(max-width:980px){.ops-grid{grid-template-columns:1fr}}
+  .co-card{background:var(--co-panel);border:1px solid var(--co-line);border-radius:8px;padding:14px 16px;margin-bottom:12px}
+  .co-card h3{margin:0 0 10px;font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--co-dim);font-weight:600}
+  .bubble{background:#eef3f8;border-radius:10px;padding:10px 12px;font-size:13.5px;margin-bottom:8px}
+  .bubble.agent{background:#f2f4f6}
+  .kv{display:flex;justify-content:space-between;gap:12px;padding:5px 0;border-bottom:1px solid #eef1f4;font-size:13px}
+  .kv:last-child{border-bottom:0}
+  .kv b{font-weight:600;font-variant-numeric:tabular-nums}
+  .act-item{display:flex;gap:9px;align-items:flex-start;padding:7px 0;border-bottom:1px solid #eef1f4;font-size:13px;opacity:0;animation:in .28s forwards}
+  @keyframes in{to{opacity:1}}
+  .act-item .dot{width:7px;height:7px;border-radius:50%;background:var(--co-accent);margin-top:6px;flex:0 0 auto}
+  .act-item.bad .dot{background:var(--co-bad)}
+  .act-item .sid{font-family:var(--mono);font-size:11px;color:var(--co-dim)}
+  .banner{border:1px solid var(--co-bad);background:#fff5f5;border-radius:8px;padding:14px 16px;margin-bottom:12px}
+  .banner h3{color:var(--co-bad);margin:0 0 8px;font-size:13px;letter-spacing:.03em}
+  .cmp{display:flex;gap:22px;margin:10px 0}
+  .cmp div span{display:block;font-size:11px;color:var(--co-dim);text-transform:uppercase;letter-spacing:.04em}
+  .cmp div b{font-size:21px;font-variant-numeric:tabular-nums}
+  .badge{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--co-line);background:#fff;border-radius:20px;padding:4px 11px;font-size:12px;color:var(--co-dim)}
+  .badge i{width:7px;height:7px;border-radius:50%;background:var(--co-ok);display:inline-block}
+  .badge.alert{border-color:var(--co-bad);color:var(--co-bad)} .badge.alert i{background:var(--co-bad)}
+  button.primary{background:#1f2328;color:#fff;border:0;padding:9px 16px;border-radius:6px;cursor:pointer;font-size:13.5px;font-weight:500}
+  button.primary:hover{background:#000}
+  button.ghost{background:#fff;border:1px solid var(--co-line);color:var(--co-ink);padding:8px 14px;border-radius:6px;cursor:pointer;font-size:13px}
+  .stage{display:flex;gap:6px;flex-wrap:wrap;margin:14px 0}
+  .stage span{border:1px solid var(--line);border-radius:14px;padding:3px 10px;font-size:11.5px;color:var(--dim)}
+  .stage span.done{border-color:#238636;color:var(--ok)}
+  .stage span.now{border-color:var(--accent);color:var(--accent)}
   section[hidden]{display:none}
   h2{font-size:15px;margin:0 0 4px}
   .sub{color:var(--dim);font-size:12.5px;margin:0 0 16px;max-width:70ch}
@@ -53,7 +93,10 @@
 </header>
 <nav id="tabs"></nav>
 <main>
-  <section id="v-benchmark"></section>
+  <section id="v-company"></section>
+  <section id="v-incident" hidden></section>
+  <section id="v-replay" hidden></section>
+  <section id="v-benchmark" hidden></section>
   <section id="v-incidents" hidden></section>
   <section id="v-evidence" hidden></section>
   <section id="v-sweep" hidden></section>
@@ -74,13 +117,23 @@ async function get(path) {
 }
 const fail = (el, e) => el.innerHTML = `<p class="err">not available — ${esc(e.message)}</p>`;
 
+// Company first: a viewer must understand WHAT is being monitored before
+// being shown forensics of it. Benchmark last — the story before the score.
 const VIEWS = [
-  ["benchmark", "Benchmark", renderBenchmark],
-  ["incidents", "Incident Lab", renderIncidents],
+  ["company", "Company Demo", renderCompany],
+  ["incident", "Incident", renderIncident],
   ["evidence", "Evidence Board", renderEvidence],
-  ["sweep", "Agent Study", renderSweep],
+  ["replay", "Replay Lab", renderReplay],
   ["immunity", "Immunity Vault", renderImmunity],
+  ["incidents", "Incident Lab", renderIncidents],
+  ["sweep", "Agent Study", renderSweep],
+  ["benchmark", "Benchmark", renderBenchmark],
 ];
+
+// The incident carried across the transition. Set when the company run fails,
+// read by every forensic view, so one execution is followed end to end rather
+// than the user landing on something merely similar.
+let ACTIVE = null;
 
 VIEWS.forEach(([id, label]) => {
   const b = document.createElement("button");
@@ -90,12 +143,213 @@ VIEWS.forEach(([id, label]) => {
 });
 
 let loaded = {};
-function show(id) {
+function show(id, force) {
   VIEWS.forEach(([v]) => {
     $("v-" + v).hidden = v !== id;
     document.querySelector(`[data-view="${v}"]`).setAttribute("aria-selected", v === id);
   });
-  if (!loaded[id]) { loaded[id] = true; VIEWS.find(v => v[0] === id)[2](); }
+  // The company view is the only light surface; everything else is forensic.
+  document.body.classList.toggle("ops", id === "company");
+  if (force || !loaded[id]) { loaded[id] = true; VIEWS.find(v => v[0] === id)[2](); }
+}
+
+// Move from operations into forensics, carrying the incident with us.
+function openInAftermath(incidentId) {
+  ACTIVE = incidentId;
+  ["incident", "evidence", "replay", "immunity"].forEach(v => loaded[v] = false);
+  show("incident", true);
+}
+
+const STAGES = ["Incident", "Investigation", "Counterfactual replay",
+                "Supported cause", "Repair", "Immunity"];
+const stageBar = (upto) => `<div class="stage">${STAGES.map((s, i) =>
+  `<span class="${i < upto ? "done" : i === upto ? "now" : ""}">${s}</span>`).join("")}</div>`;
+
+async function renderCompany() {
+  const el = $("v-company");
+  el.innerHTML = "<p class='dim'>loading…</p>";
+  try {
+    const meta = await get("/company/scenarios");
+    el.innerHTML = `
+      <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:16px">
+        <div><h2 style="font-size:18px">${esc(meta.company)}</h2>
+          <div style="color:var(--co-dim);font-size:12.5px">Customer Operations · AI Support Agent</div></div>
+        <span class="badge" id="mon" style="margin-left:auto"><i></i> AFTERMATH · Monitoring connected</span>
+      </div>
+      <div class="co-card" style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">
+        <button class="primary" id="runInc">Run support request</button>
+        <button class="ghost" id="runOk">Run healthy comparison</button>
+        <button class="ghost" id="reset">Reset</button>
+        <span style="color:var(--co-dim);font-size:12.5px" id="hint">Executes the monitored agent for real — no scripted playback.</span>
+      </div>
+      <div id="alert"></div>
+      <div class="ops-grid">
+        <div><div class="co-card"><h3>Customer conversation</h3><div id="chat">
+          <div class="bubble">${esc(meta.customer_message)}</div></div></div></div>
+        <div><div class="co-card"><h3>Support agent activity</h3><div id="feed">
+          <p style="color:var(--co-dim);font-size:13px">Idle. Run a request to see the agent work.</p></div></div></div>
+        <div><div class="co-card"><h3>Customer &amp; order</h3><div id="ctx">
+          <p style="color:var(--co-dim);font-size:13px">Loaded when a request runs.</p></div></div></div>
+      </div>`;
+
+    const drawCtx = (c) => $("ctx").innerHTML = `
+      <div class="kv"><span>Customer</span><b>${esc(c.customer.name)} · ${esc(c.customer.tier)}</b></div>
+      <div class="kv"><span>Order</span><b>${esc(c.order.id)}</b></div>
+      <div class="kv"><span>Item</span><b>${esc(c.order.item)}</b></div>
+      <div class="kv"><span>Order value</span><b>${esc(c.order.amount)}</b></div>
+      <div class="kv"><span>Age</span><b>${c.order.age_days} days</b></div>
+      <div class="kv"><span>Policy in force</span><b>${esc(c.policy.version)} · ${c.policy.window_days}d window</b></div>
+      <div class="kv"><span>Within window</span><b>${c.eligibility.within_window ? "yes" : "no"}</b></div>
+      <div class="kv"><span>Entitled refund</span><b>${esc(c.eligibility.entitled)}</b></div>
+      <div class="kv"><span>Needs approval</span><b>${c.eligibility.needs_approval ? "yes" : "no"}</b></div>`;
+
+    const run = async (incidentId) => {
+      $("alert").innerHTML = "";
+      $("feed").innerHTML = "<p style='color:var(--co-dim);font-size:13px'>Agent working…</p>";
+      const d = await get_post("/company/run", { incident_id: incidentId });
+      drawCtx(d.context);
+      $("chat").innerHTML = `<div class="bubble">${esc(d.customer_message)}</div>`;
+      $("feed").innerHTML = "";
+      // Reveal the REAL recorded steps in order. The delay paces the reveal of
+      // work already done; it never stands in for work that did not happen.
+      d.activity.forEach((a, i) => setTimeout(() => {
+        const bad = a.kind === "tool" && a.tool === "issue_simulated_refund" && d.incident;
+        $("feed").insertAdjacentHTML("beforeend", `
+          <div class="act-item ${bad ? "bad" : ""}"><span class="dot"></span><div>
+            <div>${esc(a.label)}</div>
+            <div class="sid">${esc(a.step_id)}${a.result && a.result.amount_cents !== undefined
+              ? " · amount " + (a.result.amount_cents / 100).toFixed(2) : ""}</div>
+          </div></div>`);
+        if (a.kind === "reply") $("chat").insertAdjacentHTML("beforeend",
+          `<div class="bubble agent">${esc(a.text)}</div>`);
+        if (i === d.activity.length - 1) finish(d);
+      }, i * 320));
+    };
+
+    const finish = (d) => {
+      if (!d.incident) {
+        $("alert").innerHTML = `<div class="co-card" style="border-color:var(--co-ok)">
+          <strong style="color:var(--co-ok)">Handled correctly</strong>
+          <div style="color:var(--co-dim);font-size:13px;margin-top:4px">
+            Refunded ${esc(d.refunded)} — matching the ${esc(d.context.eligibility.entitled)} the current policy entitles.
+            AFTERMATH captured nothing, because nothing went wrong.</div></div>`;
+        return;
+      }
+      $("mon").className = "badge alert";
+      $("mon").innerHTML = "<i></i> AFTERMATH · Incident captured";
+      const inc = d.incident;
+      $("alert").innerHTML = `
+        <div class="banner">
+          <h3>⚠ AI AGENT INCIDENT DETECTED</h3>
+          <div class="cmp">
+            <div><span>Expected refund</span><b style="color:var(--co-ok)">${esc(inc.expected)}</b></div>
+            <div><span>Agent issued</span><b style="color:var(--co-bad)">${esc(inc.observed)}</b></div>
+            <div><span>Severity</span><b>${esc(inc.severity)}</b></div>
+            <div><span>Captured</span><b>${inc.captured_steps} steps</b></div>
+          </div>
+          <div style="color:var(--co-dim);font-size:13px">${esc(d.outcome.detail)}</div>
+          <div style="margin-top:12px;display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+            <button class="primary" id="go">Investigate with AFTERMATH →</button>
+            <span style="color:var(--co-dim);font-size:12.5px">Opens incident
+              <code>${esc(inc.incident_id)}</code> — the run you just watched.</span>
+          </div>
+        </div>`;
+      $("go").onclick = () => openInAftermath(inc.incident_id);
+    };
+
+    $("runInc").onclick = () => run(meta.demo_incident);
+    $("runOk").onclick = () => run(null);
+    $("reset").onclick = () => { loaded.company = false; show("company", true); };
+  } catch (e) { fail(el, e); }
+}
+
+async function renderIncident() {
+  const el = $("v-incident");
+  if (!ACTIVE) {
+    el.innerHTML = `<h2>Incident</h2><p class="sub">No incident selected.
+      Run the <strong>Company Demo</strong> and click “Investigate with AFTERMATH”,
+      or pick one from the Incident Lab.</p>`;
+    return;
+  }
+  el.innerHTML = `<p class="dim">Opening incident ${esc(ACTIVE)} in AFTERMATH…</p>`;
+  try {
+    const d = await get(`/incidents/${ACTIVE}/investigation`);
+    const rep = d.repair;
+    el.innerHTML = `
+      <h2>Incident ${esc(d.incident_id)}</h2>
+      <p class="sub">${esc(d.description)}</p>
+      ${stageBar(rep && d.repair_accepted ? 5 : 3)}
+      <div class="row">
+        <div class="card"><div class="dim">Observed</div>
+          <div style="margin-top:4px">${esc(d.observed_behavior)}</div></div>
+        <div class="card"><div class="dim">Expected</div>
+          <div style="margin-top:4px">${esc(d.expected_behavior)}</div></div>
+        <div class="card"><div class="dim">Captured trajectory</div>
+          <div class="big">${d.step_count}</div><div class="dim">steps · severity ${esc(d.severity)}</div></div>
+      </div>
+      <div class="card"><strong>Supported cause</strong>
+        <div style="margin-top:6px">Step <code class="bad">${esc(d.root_cause_step ?? "none")}</code>
+          — established by <strong>${esc(d.resolution.replace(/_/g, " "))}</strong>,
+          ${d.resolved_by_measurement ? "by measurement" : "by a labelled heuristic"}.</div>
+        <div class="dim" style="margin-top:6px">Ground truth recorded by the injector:
+          <code>${esc(d.true_causal_step)}</code> —
+          ${d.root_cause_step === d.true_causal_step ? "<span class='ok'>matches</span>" : "<span class='bad'>does not match</span>"}.</div></div>
+      ${rep ? `<div class="card"><strong>Repair</strong>
+        <div style="margin-top:6px"><code>${esc(rep.kind)}</code></div>
+        <div class="row" style="margin-top:10px">
+          <div class="card"><div class="dim">Prevention</div><div class="big ok">${pct(rep.prevention_rate)}</div></div>
+          <div class="card"><div class="dim">Breaks normal cases</div>
+            <div class="big ${rep.false_block_rate ? "bad" : "ok"}">${pct(rep.false_block_rate)}</div></div>
+        </div></div>` : ""}
+      ${d.immunity.acquired ? `<div class="card" style="border-color:#238636;background:#0f2a16">
+        <strong class="ok">INCIDENT IMMUNITY ACQUIRED ✓</strong>
+        <div class="dim" style="margin-top:6px">Stored as <code>${esc(d.immunity.case_id)}</code> in the Immunity Vault.
+        Future versions of the monitored agent are replayed against it, so this failure cannot return unnoticed.</div></div>`
+      : `<div class="card"><strong class="warn">No immunity case</strong>
+        <div class="dim" style="margin-top:6px">No repair passed both prevention and false-block, so nothing was stored.</div></div>`}
+      <button class="act" onclick="show('company')">← Back to Company</button>`;
+  } catch (e) { fail(el, e); }
+}
+
+async function renderReplay() {
+  const el = $("v-replay");
+  const id = ACTIVE;
+  if (!id) { el.innerHTML = `<h2>Replay Lab</h2><p class="sub">No incident selected.</p>`; return; }
+  el.innerHTML = "<p class='dim'>running counterfactual experiments…</p>";
+  try {
+    const d = await get(`/incidents/${id}/investigation`);
+    const rows = d.experiments;
+    el.innerHTML = `
+      <h2>Replay Lab — ${esc(id)}</h2>
+      <p class="sub">Each experiment re-runs the incident with one step corrected, then
+      measures whether the failure still happens. The cause is the step with the measured
+      effect — not the most plausible explanation.</p>
+      ${stageBar(2)}
+      <div class="card"><strong>ORIGINAL</strong>
+        <div class="dim" style="margin-top:4px">${esc(d.outcome.detail)} —
+        <span class="bad">${rows[0] ? rows[0].baseline_failures + "/" + rows[0].trials + " runs fail" : ""}</span></div></div>
+      ${rows.map(r => `<div class="card" style="${r.prevented ? "border-color:#238636" : ""}">
+        <strong>Correct step <code>${esc(r.step_id)}</code></strong>
+        <span class="dim mono" style="margin-left:8px">${esc(r.kind)}</span>
+        <div style="margin-top:6px">
+          ${r.baseline_failures}/${r.trials} fail → <strong class="${r.prevented ? "ok" : "bad"}">${r.intervened_failures}/${r.trials} fail</strong>
+          <span class="pill ${r.prevented ? "ok" : ""}" style="margin-left:8px">effect ${r.effect_size >= 0 ? "+" : ""}${r.effect_size.toFixed(2)}</span>
+          ${r.prevented ? '<span class="ok" style="margin-left:8px">SAFE</span>' : '<span class="dim" style="margin-left:8px">still fails</span>'}
+        </div>
+        <div class="dim mono" style="margin-top:5px;font-size:11.5px">${esc(r.artifact_hash)}</div></div>`).join("")}
+      <div class="card" style="border-color:#1f6feb">
+        <strong>VERIFIED CAUSAL STEP — <code>${esc(d.root_cause_step ?? "none")}</code></strong>
+        <div class="dim" style="margin-top:5px">Established by ${esc(d.resolution.replace(/_/g, " "))}.</div></div>`;
+  } catch (e) { fail(el, e); }
+}
+
+async function get_post(path, body) {
+  const r = await fetch(API + path, {
+    method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  if (!r.ok) throw new Error((await r.json().catch(() => ({}))).detail || r.status);
+  return r.json();
 }
 
 async function renderBenchmark() {
@@ -156,7 +410,7 @@ async function renderIncidents() {
       <table><thead><tr><th>id</th><th>fault</th><th>layer</th><th>scenario</th>
         <th>true cause</th><th class="n">steps</th><th>violated invariant</th></tr></thead><tbody>
       ${d.incidents.map(i => `<tr>
-        <td class="mono">${esc(i.incident_id)}</td>
+        <td class="mono"><button class="act" onclick="openInAftermath('${esc(i.incident_id)}')">${esc(i.incident_id)}</button></td>
         <td>${esc(i.fault_kind)}<div class="dim" style="max-width:34ch">${esc(i.observed_behavior)}</div></td>
         <td class="dim">${esc(i.fault_layer)}</td>
         <td class="mono dim">${esc(i.scenario_id)}</td>
@@ -201,7 +455,11 @@ async function renderEvidence() {
       } catch (e) { fail(t, e); }
     };
     $("pick").onchange = (e) => draw(e.target.value);
-    draw(d.incidents[0].incident_id);
+    // Open on the incident carried over from the company demo, not the first row.
+    const start = ACTIVE && d.incidents.some(i => i.incident_id === ACTIVE)
+      ? ACTIVE : d.incidents[0].incident_id;
+    $("pick").value = start;
+    draw(start);
   } catch (e) { fail(el, e); }
 }
 
@@ -279,8 +537,8 @@ async function renderImmunity() {
 }
 
 get("/benchmark").then(b => $("src").textContent =
-  `${b.incident_ids.length} incidents · every value read from data/results/`).catch(() => {});
-show("benchmark");
+  `${b.incident_ids.length} incidents · every value read from stored artifacts`).catch(() => {});
+show("company");
 </script>
 </body>
 </html>

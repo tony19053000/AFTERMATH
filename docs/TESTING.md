@@ -150,6 +150,11 @@ Each phase's acceptance criteria in `docs/PHASES.md` map to named tests. A phase
 | P7 | a baseline win is reportable | `test_comparison_reports_a_baseline_win_honestly` |
 | P7 | empty run raises rather than reporting 0.0 | `test_empty_run_raises_rather_than_reporting_zero` |
 | P7 | reported metrics match artifacts | `test_artifact_carries_every_reported_number` |
-| P8 | agent count is configuration | `test_swarm_configurable` |
+| P8 | agent count is configuration | `test_investigator_count_is_configuration_not_hard_coded` |
+| Demo | company demo runs the real agent | `test_incident_run_fails_visibly` |
+| Demo | feed invents no steps | `test_every_feed_entry_maps_to_a_real_trace_step` |
+| Demo | incident identity survives the transition | `TestIncidentIdentitySurvivesTheTransition` |
+| Demo | immunity claimed only when a case exists | `test_immunity_is_claimed_only_when_a_case_exists` |
+| Demo | re-runs reproduce | `test_reruns_are_identical` |
 
 Extend this table as phases land.

@@ -1,6 +1,6 @@
 # AFTERMATH — Architecture
 
-**Status:** Updated 2026-08-30, end of P9. Built: the monitored agent (world, tools, scenarios, oracles), the trace layer, the LLM provider abstraction, persistence, the API skeleton, and fault injection with a 5-incident benchmark. Built in P4–P5: the replay engine, counterfactual interventions, effect-size ranking, measurement-based cause/consequence separation, the repair guard library, the 4 MVP forensic agents with their orchestrator, the Immunity Vault with its release gate, the benchmark harness with a fair single-LLM baseline, and the read-only console. Not yet built, the immunity vault (P6), the benchmark (P7), the frontend (P9).
+**Status:** Updated 2026-08-30, end of P9 + company demo. Built: the monitored agent (world, tools, scenarios, oracles), the trace layer, the LLM provider abstraction, persistence, the API skeleton, and fault injection with a 5-incident benchmark. Built in P4–P5: the replay engine, counterfactual interventions, effect-size ranking, measurement-based cause/consequence separation, the repair guard library, the 4 MVP forensic agents with their orchestrator, the Immunity Vault with its release gate, the benchmark harness with a fair single-LLM baseline, and the read-only console. Not yet built, the immunity vault (P6), the benchmark (P7), the frontend (P9).
 
 This document must match the real codebase; a stale diagram here is treated as a defect.
 
@@ -177,6 +177,38 @@ GET  /benchmark/{run_id}          metrics from stored artifacts
 ```
 
 Long-running pipeline calls return a job id and stream progress; the UI's "running" state must map to a real job state.
+
+## 8b. The monitored-company surface and the capture boundary
+
+The console has two faces, deliberately unalike:
+
+```mermaid
+flowchart LR
+    subgraph OPS["NovaCommerce — operations (light)"]
+        CHAT[Customer request] --> AGENT[Support agent activity]
+        AGENT --> CTX[Order & policy context]
+    end
+    AGENT -->|emits trace| CAPTURE{{"AFTERMATH capture<br/>monitoring integration"}}
+    CAPTURE -->|incident_id| FOR
+    subgraph FOR["AFTERMATH — forensics (dark)"]
+        INC[Incident] --> EV[Evidence Board] --> RP[Replay Lab] --> IM[Immunity Vault]
+    end
+```
+
+**Both faces read one execution.** `api/company.py` adds no simulation: a demo run
+calls `run_clean` / `run_incident` exactly as the benchmark does, and the activity
+feed is built from the resulting trace steps. A step the agent did not take cannot
+appear in the feed — asserted by `test_every_feed_entry_maps_to_a_real_trace_step`.
+
+**Incident identity is the integration.** The company run returns a real
+`incident_id` from `data/incidents/`; the forensic views are opened with that id
+and re-fetch against it. There is no separate demo record to drift out of sync,
+which is why "investigate this incident" opens the run the viewer just watched
+rather than something similar.
+
+`GET /api/incidents/{id}/investigation` executes the pipeline on request —
+deterministically, no model — so the hypotheses, effect sizes, repair numbers and
+immunity status are what the engine concludes about that incident now.
 
 ## 9. Folder structure (planned)
 

@@ -2,12 +2,26 @@
 
 **Purpose:** if the session ends or context resets, this file alone (plus the docs it points to) must be enough to continue accurately. Written for a reader who remembers nothing.
 
-**Last updated:** 2026-08-30 — end of P6.
+**Last updated:** 2026-08-30 — P9 + company demo.
 **Current phase:** P6 complete → next is **P7 Fair baseline + benchmark**.
 
 ---
 
 ## What was completed this cycle
+
+**Company demo (the missing first half of the product experience).**
+
+- `api/company.py` — `GET /api/company/scenarios`, `POST /api/company/run`. Adds **no** simulation: calls `run_clean` / `run_incident` like the benchmark does, and builds the activity feed from the resulting trace steps.
+- `GET /api/incidents/{id}/investigation` — runs the forensic pipeline on request, deterministically, for one incident.
+- Console gained **Company Demo** (light operations theme, now the default landing), **Incident**, and **Replay Lab**; Evidence Board and Incident Lab now honour the carried incident.
+- Demo incident is **I-007**: order worth 172.00, agent refunds 990.00. Chosen because it is visually obvious, localizes uniquely, has an accepted repair, and already holds vault case `RC-I-007` — so the whole story runs on real artifacts.
+- Incident identity is carried by the real `incident_id`; there is no separate demo record that could drift.
+
+Tests: 21 added (`backend/tests/api/test_company_demo.py`). Suite 875 → **896**.
+
+---
+
+### Earlier
 
 **P6 — the Immunity Vault.** A fixed failure can no longer come back silently.
 

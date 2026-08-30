@@ -31,7 +31,7 @@ Within a phase, % done = satisfied acceptance criteria ÷ total acceptance crite
 
 ## Current phase
 
-**P9 — Frontend.** Complete. A read-only console served by our own backend at `/`, showing only values fetched from stored artifacts.
+**P9 — Frontend.** Complete, and extended with the monitored-company demo: the operations half of the story that makes the forensic half legible without reading a benchmark first.
 
 ## Current objective
 
@@ -75,7 +75,7 @@ None in progress.
 
 ## Failing tests
 
-None. **875 passed** offline (`pytest backend/tests -q`, ~7s), plus 5 opt-in `live` tests requiring a key.
+None. **896 passed** offline (`pytest backend/tests -q`, ~11s), plus 5 opt-in `live` tests requiring a key.
 
 ## Known bugs
 
@@ -139,7 +139,7 @@ Note: the *monitored* company agent (P2) is the subject of forensics, not a fore
 
 ## UI status
 
-**Built** (P9). Five views at `http://127.0.0.1:8000/`, served by FastAPI. Deleting an artifact yields a 404 and the view reports it unavailable — verified by deleting `benchmark.json` and checking the response, not by assuming it.
+**Built** (P9 + company demo). Eight views at `http://127.0.0.1:8000/`, served by FastAPI. The default landing is the **NovaCommerce company demo** — a light operations app where the monitored agent visibly fails — and "Investigate with AFTERMATH" carries that incident into the dark forensic views. Five views at Deleting an artifact yields a 404 and the view reports it unavailable — verified by deleting `benchmark.json` and checking the response, not by assuming it.
 
 ## Security / TEE status
 
