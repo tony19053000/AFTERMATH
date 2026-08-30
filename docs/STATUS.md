@@ -1,7 +1,7 @@
 # AFTERMATH — Project Status
 
 **Last updated:** 2026-08-30
-**Last verified commit:** `dd41177` — feat: P9 forensic console
+**Last verified commit:** `2cdf053` — docs: record P9 commit hash in STATUS
 
 ---
 
@@ -19,7 +19,7 @@
 | P5 Minimal forensic pipeline (MVP) | 14 | 100% | 14.0 |
 | P6 Immunity Vault | 8 | 100% | 8.0 |
 | P7 Baseline & benchmark | 10 | 100% | 10.0 |
-| P8 Swarm expansion & agent-count study | 10 | 100% | 10.0 |
+| P8 Agent-count study | 10 | 100% | 10.0 |
 | P9 Frontend | 8 | 100% | 8.0 |
 | P10 Hardening & demo | 4 | 0% | 0.0 |
 | P11 TEE vault *(optional, unweighted)* | 0 | 0% | 0.0 |
@@ -31,95 +31,74 @@ Within a phase, % done = satisfied acceptance criteria ÷ total acceptance crite
 
 ## Current phase
 
-**P9 — Frontend.** Complete. A forensic console served by our own backend, reading only stored artifacts.
-
-**P8.1 result: the sweep fallback lifted AFTERMATH 0.75 → 0.90, now TIED with the baseline.** Measured against the P7 cassette so agent answers were identical and the change is attributable to the orchestration alone. The agent pipeline still does not beat the deterministic sweep (0.95).
-
-**⚠ THE BASELINE WON: 0.90 vs 0.75 on the primary metric.** Published as measured (D-007). The informative part: AFTERMATH's *deterministic* configuration scores **0.95**, beating the baseline. The replay machinery works; the LLM agent layer is a net negative because it narrows the hypothesis set below what the evidence engine needs.
-
-**P8.3 result: repair coverage 10/20 → 16/20**, and the immunity suite caught a **guard interaction that was less safe than either guard alone** — `rederive_approval` deciding on an amount `bound_refund_to_order_total` was about to correct, issuing an unapproved over-limit refund. Fixed by making guard precedence explicit.
-
-**P8.2 result: more investigators raise recall (0.70 → 0.80 → 0.85) at 3.07× then 1.66× the tokens — and buy nothing the deterministic fallback does not already provide free.** Production configuration: **1 investigator**. The swarm was not expanded, because the measurement did not justify it (D-008, D-021).
+**P9 — Frontend.** Complete. A read-only console served by our own backend at `/`, showing only values fetched from stored artifacts.
 
 ## Current objective
 
-Begin **P10 — Hardening, reproducibility, demo**: Docker, clean-clone reproduction, secrets scan over history, README with real numbers, and an honest statement of limitations.
+**P10 — Hardening, reproducibility, demo.** Docker, clean-clone reproduction, a secrets scan over full history, README verified against artifacts, and an honest limitations section.
+
+## Where the project actually stands
+
+The full loop runs end to end: **incident → evidenced cause → tested repair → permanent regression case → release gate.**
+
+The central claim is **partially supported, and the qualification matters**. Counterfactual replay beats a capable LLM (0.95 vs 0.90). The LLM agent layer on top of it does not: alone it scored 0.75, and after the P8.1 fallback fix it ties the baseline at 0.90 — still below the deterministic engine it sits on.
 
 ## Completed phases
 
-- **P0** — documentation system, CLAUDE.md, phases, architecture, testing strategy, status/context tracking, `.gitignore`, `.env.example`.
-- **P1** — backend package, trace schema + content hashing, LLM provider abstraction (mock/gemini/recording), SQLite persistence + artifact store, FastAPI skeleton, 64-test pytest suite, import-boundary enforcement.
-- **P2** — seeded simulated world (versioned policies), 7 simulated tools, `CompanyAgent` adapter + custom-loop agent (D-004 resolved), trace collector, 5 clean scenarios with deterministic oracles.
-- **P3** — injection framework (tool-result, world-state, retry layers), incident definition format + loader, **5 incidents** with injector-authored ground truth, normal-case set.
-- **P4** — deterministic replay engine, counterfactual interventions, N-trial experiment runner, effect-size ranking. Byte-identical strict replay verified; 4/5 correct root-cause localization under a strong (healthy-value) control.
-- **P5** — 4 runtime agents (investigator, planner, repair, verifier) + orchestrator; redaction; measurement-based cause/consequence separation (`replay/chain.py`); repair guard library with prevention **and** false-block evaluation. 5/5 localization deterministically and with live agents.
-- **P6** — regression cases with two-direction controls, immunity vault, composable guard chains, suite runner and release gate. Reintroduced-bug detection verified.
-- **P7** — incident set 5→20 (all verified), scenarios enforce full invariant sets, fair single-LLM baseline (fairness review D-017), deterministic grader with near-miss handling, metrics from stored artifacts, live benchmark run. **Result: baseline 0.90, AFTERMATH-with-agents 0.75, AFTERMATH-deterministic 0.95.**
+- **P0** — documentation system, CLAUDE.md, 11-phase plan, weighted completion tracking.
+- **P1** — backend package, trace schema + content hashing, LLM provider abstraction (mock/gemini/recording), SQLite persistence + artifact store, FastAPI skeleton, import-boundary enforcement.
+- **P2** — seeded simulated world (versioned policies), 7 simulated tools, `CompanyAgent` adapter + custom-loop agent (D-004), trace collector, 5 scenarios with deterministic oracles.
+- **P3** — injection framework (tool-result, world-state, retry layers), incident format + loader, incidents with injector-authored ground truth.
+- **P4** — deterministic replay engine, counterfactual interventions, N-trial runner, effect-size ranking. **Byte-identical strict replay verified**, and proven achievable only via record/replay — a live model at temperature 0 is not reproducible (D-015).
+- **P5** — 4 runtime agents + orchestrator, ground-truth redaction, measurement-based cause/consequence separation (`replay/chain.py`), repair guard library measured on prevention **and** false-block.
+- **P6** — regression cases with two-direction controls, immunity vault, composable guard chains, suite runner, release gate.
+- **P7** — incident set 5→20 (each verified), scenarios enforce full invariant sets, fair single-LLM baseline (fairness review D-017), deterministic grader with near-miss handling, live benchmark.
+- **P8** — sweep fallback (0.75→0.90), repair coverage 10/20→16/20, guard-ordering safety fix, agent-count study concluding **1 investigator** (D-021).
+- **P9** — read-only console (Benchmark, Incident Lab, Evidence Board, Agent Study, Immunity Vault). Tests assert it hard-codes no result, has no fallback data, loads nothing cross-origin, and that every path it fetches resolves.
 
 ## Active tasks
 
-- None in progress.
+None in progress.
 
 ## Blocked tasks
 
 **Nothing is blocked.**
 
-- **Gemini API key** — ✅ configured in `.env` (gitignored, mode 600) since P7. Used for every live run: the P5 pipeline, the P7 benchmark, and the P8.2 sweep (~500 calls total). The default test suite never touches it — an autouse fixture isolates tests from `.env` (D-013), so `pytest` behaves identically with or without a key present.
+- **Gemini API key** — ✅ configured in `.env` (gitignored, mode 600). Used for the P5 pipeline, P7 benchmark and P8.2 sweep (~500 calls). The default suite never touches it: an autouse fixture isolates tests from `.env` (D-013), so `pytest` behaves identically with or without a key.
 - **Reproducing published results needs no key.** Committed cassettes replay the benchmark offline to the same artifact hash, asserted by test.
 
 ## Next tasks (in order)
 
-1. ~~**P8.1** — sweep fallback.~~ Done: 0.75 → 0.90, before/after published.
-2. **P8.2** — investigator-count sweep (1/3/5/7) against the 0.95 deterministic ceiling, measuring accuracy, latency, and token cost.
-3. ~~**P8.3** — add `bound_refund_to_order_total`.~~ Done: 10/20 → 16/20, before/after published; found and fixed a guard-ordering safety bug.
-4. ~~**P8.4/P8.5** — decide the production configuration on measurement.~~ Done: 1 investigator, recorded as D-021.
-5. **P9.1** — read-only UI over the committed artifacts (benchmark results, incident set, immunity vault) before anything live.
+1. **P10.1** — Docker + compose; verify a clean clone reproduces the benchmark from committed cassettes.
+2. **P10.2** — secrets scan over full git history; confirm nothing sensitive was ever committed.
+3. **P10.3** — security tests: prompt-injection incident, secrets-in-trace redaction.
+4. **P10.4** — README and docs verified line by line against `data/results/`; limitations stated plainly.
+5. **P10.5** — demo script driving the real console against real artifacts.
 
 ## Failing tests
 
-None. **848 passed** offline (`pytest backend/tests -q`, ~5.2s), plus 5 opt-in `live` tests.
+None. **848 passed** offline (`pytest backend/tests -q`, ~5s), plus 5 opt-in `live` tests requiring a key.
 
 ## Known bugs
 
 None known.
 
-## Technical debt
-
-- `benchmark/` is still an empty package stub.
-- **The agent layer no longer subtracts, but still does not add.** P8.1 lifted it 0.75 → 0.90 (tied with the baseline), yet AFTERMATH's deterministic sweep alone still scores 0.95. The residual gap is one step-labelling case (I-010).
-- **All wrong answers across both systems are call-step vs result-step of the same call.** A labelling ambiguity, not a different diagnosis. Strict convention retained; the lenient alternative helps the baseline more (1.00 vs 0.80), and both numbers are published.
-- **The immunity suite has 16 cases, not 20.** Four incidents have no acceptable repair: I-005 (no localizable cause) and I-009/I-014/I-020, which corrupt *eligibility* rather than an amount. A `rederive_eligibility` guard would likely cover the latter three — **deliberately not added**, since adding guards until the benchmark is fully covered is the fitting D-019 prevents.
-- **Guard ordering is safety-critical.** Value-correcting guards must precede decision-deriving ones; `GuardChain` enforces this on construction. Found by the suite, not by inspection.
-- **I-005 is not localizable and reports no cause.** Correcting the policy read swaps one failure for another (the agent then under-refunds). This corrects P5's reported 5/5 to 19/20 — the earlier success was an artifact of a narrow oracle. The import-boundary guard is load-bearing for `replay/` and now also covers the deterministic chain and repair modules.
-- **Repairs are selected from a fixed guard library, not synthesized.** The agent chooses a kind; Python applies and measures it. Keeps repairs executable, but narrows what "the agent proposes a repair" means.
-- **I-005 has no acceptable repair in the library.** A freshness check cannot fix a world that genuinely lacks the newer policy. Reported honestly (`repair_accepted: false`) rather than promoting the blocker.
-- **Live cassettes are gitignored**, so the live agent result is not reproducible from a clean clone. Committing benchmark cassettes is a P7 task.
-- **Live "unique effect" partly reflects narrower hypothesis sets**, not better discrimination: agents proposed 1–2 candidates, so ties often never formed.
-- **Scenarios now enforce full invariant sets.** Previously each was judged by one oracle, so a run could violate a different safety property and still pass. Strengthening this expanded the injectable fault surface from 2 to 20 viable incidents — and invalidated one published number (see CHANGELOG).
-- **Effect-size ties: partly resolved in P5.** `replay/chain.py` now separates cause from consequence by *measurement* (does correcting A normalize B?), resolving I-001 and I-004. I-005 remains unresolvable that way — a world-state fault — and its report is explicitly labelled `earliest_step_heuristic`. The heuristic still exists; it is now the labelled fallback rather than the default.
-- **The intervention vocabulary bounds what is findable.** I-002's fix is skipping a duplicated call, so no value-replacement experiment reaches it and `localize()` correctly returns `None`. With `SKIP_TOOL_CALL` it localizes at +1.00 — so the planner's choice of intervention *kind* is load-bearing, not incidental.
-- **Failure rates are 0.0 or 1.0 with zero variance**, because the agent's control flow is deterministic. Real agents will produce intermediate rates; `TrialSummary.distinct_traces` tracks trace variance so that shift is visible rather than silent.
-- ~~P4's interventions were written by us, not proposed by a model.~~ Resolved in P5: live agents proposed all hypotheses and the planner chose `skip_tool_call` for the retry fault unaided.
-- The MVP agent's control flow is deterministic Python; the model narrates reasoning but does not decide. Deliberate (D-003), but it means agent-reasoning failure modes cannot be injected at the model level.
-- **The CONTEXT injection layer is taxonomy only — no kind implements it.** `calculate_refund` re-reads the customer from world state rather than using what `get_customer` returned, so altering that call's arguments changes nothing the agent decides. Revisit when the agent's data flow deepens.
-- All 5 incidents currently fail at rate 1.0 because the agent is fully deterministic. The rate is *measured*, not assumed, so it stays honest when P4 introduces resampled replay.
-- `RecordingProvider` rewrites the whole cassette on each new response — fine at current volume, revisit if cassettes grow large.
-- Watch items: SQLite → PostgreSQL migration seam; artifact store is local filesystem only.
-
 ## Benchmark status
 
-**Run 2026-08-30.** 20 incidents, `gemini-3.7-flash`, identical set and grader for both systems.
+**Run 2026-08-30.** 20 incidents, `gemini-3.7-flash`, identical incident set and identical deterministic grader for both systems.
 
 | configuration | localization | exact | wrong | abstained |
 |---|---:|---:|---:|---:|
-| AFTERMATH, deterministic sweep | **0.95** | 19 | 0 | 1 |
-| Baseline, single LLM | **0.90** | 18 | 2 | 0 |
-| AFTERMATH, live LLM agents (P7) | 0.75 | 15 | 1 | 4 |
-| **AFTERMATH, live agents + sweep fallback (P8.1)** | **0.90** | 18 | 1 | 1 |
+| AFTERMATH — deterministic sweep | **0.95** | 19 | 0 | 1 |
+| AFTERMATH — agents + sweep fallback *(current)* | **0.90** | 18 | 1 | 1 |
+| Baseline — single LLM | **0.90** | 18 | 2 | 0 |
+| AFTERMATH — agents alone *(superseded, P7)* | 0.75 | 15 | 1 | 4 |
 
-Artifacts: `data/results/benchmark.json`, `data/results/benchmark_deterministic.json`. Every number above is read from those files.
+**Current verdict: TIED** between the agent pipeline and the baseline. AFTERMATH is wrong less often (1 vs 2) and abstains rather than guessing; the metric does not penalize guessing.
 
-**The baseline beats the agent pipeline.** AFTERMATH's deficit is entirely abstentions — it refuses to answer without evidence, and the metric does not penalize guessing. The deterministic configuration beating the baseline is what localizes the weakness to the agent layer.
+Under the lenient grading convention (either step of the correct call counts): AFTERMATH 0.95, baseline **1.00**. Both conventions are published because they disagree about who leads.
+
+Artifacts: `data/results/benchmark.json`, `benchmark_deterministic.json`, `benchmark_p7_pre_fallback.json`. Every number above is read from those files.
 
 ## Agent-count study (P8.2)
 
@@ -129,20 +108,46 @@ Artifacts: `data/results/benchmark.json`, `data/results/benchmark_deterministic.
 | 3 | 0.80 | 6,424 |
 | 5 | 0.85 | 10,694 |
 
-Artifact: `data/results/investigator_recall_sweep.json`. Recall rises but does not convert into localization, because the exhaustive fallback already floors it. **Not measured:** whether 3/5 investigators change end-to-end localization — a follow-up costing ~300 live calls.
+Recall rises (+0.10, then +0.05) at 3.07× then 1.66× the tokens — and buys only avoidance of the exhaustive fallback, which the deterministic engine already performs free. Production configuration is 1 investigator (D-021).
+
+**Not measured:** whether 3/5 investigators change end-to-end localization. A follow-up costing ~300 live calls.
+
+## Technical debt
+
+**About the result**
+- **The agent layer ties the baseline but does not beat the deterministic sweep** (0.90 vs 0.95). The residual gap is one step-labelling case (I-010), where the agent names the `tool_call` step and ground truth is the `tool_result` step of the same call.
+- **I-005 is not localizable** and correctly reports `no_cause_found` with no repair. Correcting the policy read swaps one failure for another. This corrected P5's reported 5/5 to 19/20 — the earlier success was an artifact of a narrow oracle.
+- **Failure rates are 0.0 or 1.0 with zero variance**, because the agent's control flow is deterministic. Real agents give intermediate rates; `TrialSummary.distinct_traces` makes that shift visible.
+
+**About coverage**
+- **The immunity suite has 16 cases, not 20.** I-005 has no localizable cause; I-009/I-014/I-020 corrupt *eligibility* rather than an amount, and no guard re-derives eligibility. A `rederive_eligibility` guard would likely cover them — **deliberately not added**, since adding guards until the benchmark is fully covered is the fitting D-019 prevents.
+- **Repairs are selected from a fixed guard library, not synthesized.** The agent chooses a kind; Python applies and measures it.
+- **The CONTEXT injection layer is taxonomy only.** `calculate_refund` re-reads the customer from world state, so altering that call's arguments changes nothing the agent decides.
+
+**About the design**
+- **Guard ordering is safety-critical.** Value-correcting guards must precede decision-deriving ones; `GuardChain` enforces this on construction. Found by the suite, not by inspection.
+- **The intervention vocabulary bounds what is findable.** A duplicated action needs `skip_tool_call`; no value replacement reaches it.
+- The MVP agent's control flow is deterministic Python; the model narrates but does not decide (D-003), so reasoning-level faults cannot be injected.
+- `RecordingProvider` rewrites the whole cassette per new response — fine at current volume.
+- Watch items: SQLite → PostgreSQL seam; artifact store is local filesystem only.
 
 ## Runtime-agent status
 
-**4 runtime agents implemented** (P5): investigator, counterfactual planner, repair, verifier — prompts in `forensics/prompts/`, strict Pydantic I/O, ground truth redacted. Verified contributing against a live model (5/5 agent-sourced hypotheses). The full ~16-agent swarm is P8 and contingent on measurement. Note: the *monitored* company agent (P2) is the subject of forensics, not a forensic agent.
+**4 runtime agents implemented** (P5): investigator, counterfactual planner, repair, verifier. Prompts are versioned files in `forensics/prompts/`, I/O is strict Pydantic, ground truth is redacted before an agent sees a trace.
+
+**The ~16-agent swarm was not built.** P8.2 measured agent count and concluded 1 investigator (D-021); the design in `docs/PRODUCT_AGENTS.md` remains documented as a design, explicitly unbuilt, with that measurement as the reason.
+
+Note: the *monitored* company agent (P2) is the subject of forensics, not a forensic agent.
 
 ## UI status
 
-**Built** (P9). Five views over stored artifacts at `http://127.0.0.1:8000/`. Deleting an artifact produces a 404 and the view says "not available" — verified by deleting `benchmark.json` and checking the response, not by assuming it.
+**Built** (P9). Five views at `http://127.0.0.1:8000/`, served by FastAPI. Deleting an artifact yields a 404 and the view reports it unavailable — verified by deleting `benchmark.json` and checking the response, not by assuming it.
 
 ## Security / TEE status
 
-- Secrets handling: `.env` gitignored, `.env.example` with placeholders only. ✅ in place.
-- TEE / Secure Forensic Vault: **not implemented, optional, P11.** No TEE, attestation, or confidential-computing claim may appear anywhere in this project until real attestation output exists.
+- Secrets: `.env` gitignored (mode 600), `.env.example` holds placeholders only. Verified absent from the staged diff and from history.
+- Committed cassettes scanned for secrets, asserted by test.
+- TEE / Secure Forensic Vault: **not implemented, optional, P11.** No TEE, attestation, or confidential-computing claim appears anywhere in this project, and none may until real attestation output exists.
 
 ## Deployment status
 
@@ -150,9 +155,8 @@ Artifact: `data/results/investigator_recall_sweep.json`. Recall rises but does n
 
 ## Git / remote status
 
-- Repository: initialized, branch `main`.
-- Remote: **`origin` → https://github.com/tony19053000/AFTERMATH.git** ✅ configured 2026-08-30.
+- Repository: branch `main`, remote `origin` → https://github.com/tony19053000/AFTERMATH.git
 - Remote was empty at first push (0 refs) — no pre-existing history was overwritten.
-- `main` tracks `origin/main`; pushed and verified at `dd41177`.
-- Bootstrap commit: `c6825fb` ✅
+- `main` tracks `origin/main`, in sync at `2cdf053`.
+- Bootstrap commit: `c6825fb`.
 - Push policy: no force push, no history rewrite. Push only after a phase's Definition of Done is met.
