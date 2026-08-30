@@ -2,7 +2,9 @@
 
 > **Scope boundary.** This document describes AI agents that run **inside the AFTERMATH product**. It has nothing to do with the Claude Code development sub-agents in `.claude/agents/` (`project-manager`, `coder`, `tester`, `reviewer`), which build this repository. Never document one in the other's file, and never conflate them.
 
-**Status:** design only. **No runtime agent is implemented yet.** MVP target is 4 agents (P5); the full swarm is P8 and contingent on measurement.
+**Status:** the 4 MVP agents are **implemented and verified** (P5). Prompts live in `backend/aftermath/forensics/prompts/` as versioned files; I/O schemas in `forensics/schemas.py`; the orchestrator in `forensics/orchestrator.py`. The full swarm is P8 and contingent on measurement.
+
+Verified against a live model (`gemini-3.7-flash`, 2026-08-30): all five seed incidents localized correctly with **all hypotheses agent-sourced** — the deterministic fallback never fired. The planner chose `skip_tool_call` unaided for the duplicated-action fault, the case value-replacement experiments structurally cannot reach.
 
 ---
 
@@ -44,6 +46,8 @@ Every causal claim in a final report must cite a stored experiment artifact. A c
 
 **Responsibility.** Convert hypotheses into **executable** intervention specifications.
 
+**Its hardest judgement is the intervention *kind*.** A step that returned a wrong value needs `replace_tool_result`; a step that is an action which should never have happened needs `skip_tool_call`. Choosing wrong makes a real cause undetectable no matter how good the hypothesis was — measured in P4, where the duplicate-refund incident was unreachable by replacement and the engine correctly returned "no cause found".
+
 **Output.**
 ```jsonc
 { "experiments": [ {
@@ -56,7 +60,7 @@ Every causal claim in a final report must cite a stored experiment artifact. A c
 } ] }
 ```
 
-**Constraint.** Interventions must be **minimal and surgical** — change one thing. A plan that alters several steps at once cannot localize a cause. The planner must also propose at least one negative control (an intervention at a step it believes is *not* causal), so we can detect an engine that "fixes" everything.
+**Constraint.** Interventions must be **minimal and surgical** — change one thing. A plan that alters several steps at once cannot localize a cause. The planner should also propose at least one negative control (an intervention at a step it believes is *not* causal), so we can detect an engine that "fixes" everything. **Not yet implemented (P5):** the negative-control sweep is currently supplied by the deterministic exhaustive fallback and by `TestCausalChainLimitations`, not by the planner itself.
 
 ### 2.3 Repair Agent (1 in MVP; becomes a 4-way tournament in P8)
 
@@ -65,6 +69,10 @@ Every causal claim in a final report must cite a stored experiment artifact. A c
 **Output.** Repair id, strategy class, description, concrete change specification, expected prevention mechanism, anticipated side effects.
 
 **Constraint.** Repairs are **proposals**. They are accepted only after Python measures prevention rate on the incident and false-block rate on normal cases. A repair that prevents the incident by blocking everything must lose, and the utility measurement is what catches that.
+
+**Implementation note (P5).** The agent selects a guardrail *kind* from a library in `replay/repair.py` and Python applies and measures it, rather than the model writing code. This keeps repairs executable and testable — but it narrows the agent's role to selection rather than synthesis, and that limit is stated rather than glossed.
+
+**Measured, 2026-08-30.** `block_all_refunds` is in the library deliberately as a plausible-looking bad option. It prevents **4 of 5** incidents and is rejected every time on a false-block rate of 0.20. Prevention alone would have ranked it best in the system.
 
 ### 2.4 Verifier (1 in MVP; becomes 3 in P8)
 

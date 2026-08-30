@@ -2,11 +2,11 @@
 
 **From Agent Incident to Verified Immunity.**
 
-> **Project status: P4 of 11 complete (46%).** The replay engine works. Byte-identical strict replay is verified, and counterfactual experiments correctly localize the true cause in **4 of 5 seed incidents**. 329 tests, all offline.
+> **Project status: P5 of 11 complete (60%). The MVP vertical slice is closed** — incident → evidenced cause → tested repair, end to end.
 >
-> Two measured limitations, stated up front: a fault and its downstream consequences **tie** at maximum effect (correcting either prevents the failure), so effect size alone does not uniquely identify a root cause; and one incident is unreachable by value-replacement experiments because its fix is skipping a call, where the engine correctly reports *no cause found* rather than guessing.
+> Root cause correctly localized in **5/5 seed incidents**, both on the deterministic path and against live agents (where **5/5 hypotheses were agent-proposed**, not fallback). Repairs are measured on prevention *and* on whether they break legitimate cases; 4/5 incidents get an accepted repair, and the fifth is reported as having none rather than being given a bad one. 386 tests, all offline.
 >
-> Not yet built: the forensic agents (P5) — so far the interventions are written by us, not proposed by a model. There is **no baseline comparison yet** (P7), and this README will not carry any number that does not come from a stored experiment artifact.
+> Honest limits: one incident's cause still rests on a labelled heuristic rather than measurement; repairs are selected from a fixed guard library, not written by the model; and the live run's cassettes are gitignored, so that result is not yet reproducible from a clean clone. There is **no baseline comparison yet** (P7) — until then, nothing here claims AFTERMATH beats a plain LLM.
 
 ---
 
@@ -86,9 +86,22 @@ The backend runs fully offline on a deterministic mock provider — no API key n
 uv venv --python 3.12 .venv
 uv pip install --python .venv/bin/python -e "backend[dev]"
 
-.venv/bin/python -m pytest backend/tests -q                 # 329 passed
+.venv/bin/python -m pytest backend/tests -q                 # 386 passed
 .venv/bin/python -m uvicorn aftermath.api.app:app --port 8000
 curl -s localhost:8000/health
+```
+
+Run the full forensic pipeline on a seed incident — no API key needed, the
+deterministic path uses no model at all:
+
+```python
+from aftermath.forensics.orchestrator import ForensicOrchestrator
+from aftermath.injection.incidents import load_incidents
+
+report = ForensicOrchestrator(None, trials=3).investigate(load_incidents()["I-001"])
+print(report.root_cause_step)   # s0007, chosen by measured effect
+print(report.resolution)        # how it was decided: measurement or heuristic
+print(report.repair)            # prevention_rate, false_block_rate, accepted
 ```
 
 Run a monitored scenario and inspect the trace it produces:

@@ -1,6 +1,6 @@
 # AFTERMATH — Testing Strategy
 
-**Status:** live as of P4. 329 tests, fully offline and deterministic.
+**Status:** live as of P5. 386 tests, fully offline and deterministic.
 
 ---
 
@@ -72,7 +72,7 @@ uv pip install --python .venv/bin/python -e "backend[dev]"
 
 Markers: `slow` · `live` · `replay` · `benchmark` · `security`. `addopts` excludes `live` by default, so the suite never needs a network or a key.
 
-**Current:** 329 passed offline (~2.3s), plus 3 `live` tests that pass against the real provider (~10s) when run deliberately.
+**Current:** 386 passed offline (~2.1s), plus 5 `live` tests that pass against the real provider when run deliberately.
 
 **Hermeticity.** An autouse fixture isolates tests from the repository `.env` and from `GEMINI_API_KEY` (D-013). The default run behaves identically whether or not a key is present on the machine — verified both ways. `live`-marked tests opt out and are the only ones permitted to reach a network.
 
@@ -125,7 +125,16 @@ Each phase's acceptance criteria in `docs/PHASES.md` map to named tests. A phase
 | P4 | ranking ignores confidence | `test_ranking_ignores_confidence` |
 | P4 | experiments re-runnable from artifacts | `test_artifact_round_trips_and_is_rerunnable` |
 | P4 | no model in the evidence path | `TestNoModelInTheEvidencePath` |
-| P5 | ranking follows evidence, not confidence | `test_ranking_prefers_effect_size` |
+| P5 | ranking follows evidence, not confidence | `test_a_confident_wrong_agent_cannot_win` |
+| P5 | every causal claim cites an experiment | `test_every_causal_claim_cites_an_experiment` |
+| P5 | agents never see ground truth | `TestAgentsNeverSeeGroundTruth` |
+| P5 | malformed agent output degrades, not crashes | `test_pipeline_runs_with_the_mock_provider` |
+| P5 | repair measured on prevention AND false-block | `test_repair_is_measured_on_both_axes` |
+| P5 | a normal-case-breaking repair is not accepted | `test_a_repair_that_breaks_normal_cases_is_not_accepted` |
+| P5 | cause/consequence resolved by measurement | `test_chain_is_resolved_by_measurement_not_heuristic` |
+| P5 | heuristic fallback is labelled | `test_heuristic_fallback_is_labelled_as_such` |
+| P5 | report reproducible from artifacts | `test_report_is_reproducible` |
+| P5 | live agents actually contribute | `TestLiveAgentPath` *(live)* |
 | P6 | regression case fails unrepaired, passes repaired | `test_immunity_case_controls` |
 | P7 | identical incident set for both systems | `test_baseline_parity` |
 | P7 | reported metrics match artifacts | `test_metrics_match_artifacts` |

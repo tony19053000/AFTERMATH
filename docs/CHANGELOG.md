@@ -147,6 +147,48 @@ Both limitations are now asserted as tests (`TestCausalChainLimitations`) so the
 
 ---
 
+## 2026-08-30 — P5 Minimal forensic pipeline (the MVP vertical slice)
+
+**WHAT WE TRIED.** The complete loop, with the fewest runtime agents that prove it: 1 investigator, 1 counterfactual planner, 1 repair agent, 1 verifier, plus an orchestrator wiring them to the deterministic replay layer.
+
+### Experiment 1 — does the loop close?
+
+**Deterministic path (no LLM at all): 5/5 correct localization.** Every incident produces a report whose cause is chosen by measured effect, citing experiment artifacts.
+
+| incident | cause | resolution | repair | prevention | false-block | accepted |
+|---|---|---|---|---:|---:|---|
+| I-001 | s0007 ✅ | **dominance measured** | validate_policy_freshness | 1.00 | 0.00 | ✅ |
+| I-002 | s0019 ✅ | unique effect | idempotent_refund | 1.00 | 0.00 | ✅ |
+| I-003 | s0009 ✅ | unique effect | rederive_approval | 1.00 | 0.00 | ✅ |
+| I-004 | s0007 ✅ | **dominance measured** | validate_policy_freshness | 1.00 | 0.00 | ✅ |
+| I-005 | s0007 ✅ | earliest-step *heuristic* | *none acceptable* | 1.00 | 0.20 | ❌ |
+
+### Experiment 2 — do the LLM agents actually contribute?
+
+The offline suite proves the machinery; only a live run proves the agents matter. Against `gemini-3.7-flash`, 263s for all five:
+
+**5/5 correct localization, 5/5 hypotheses agent-sourced** — the exhaustive fallback never fired. Most notably the planner chose `skip_tool_call` for I-002 unaided, which is the case P4 identified as structurally unreachable by value replacement.
+
+### D-016 discharged, partly
+
+P4 left the cause-vs-consequence tie broken by an earliest-step heuristic. `replay/chain.py` replaces it with an experiment: **if correcting step A also normalizes the value at step B, then B was carrying A's fault forward and A is upstream.** That is a dominance measurement, not an ordering assumption. It resolves I-001 and I-004. It does *not* resolve I-005 — a world-state fault, where correcting the tool output cannot normalize downstream because the environment itself is wrong — and there the report is explicitly labelled `earliest_step_heuristic` rather than dressed up as evidence.
+
+### The repair result worth keeping
+
+`block_all_refunds` is in the library deliberately as a plausible-looking bad option. It **prevents 4 of 5 incidents** — and is rejected every time on a false-block rate of 0.20. Reporting prevention alone would have made it look like the best repair in the system. I-005 has **no acceptable repair at all**, and the report says so rather than promoting the blocker.
+
+**RESULT / EVIDENCE.** `pytest backend/tests -q` → **386 passed** in ~2.1s offline, plus 5 opt-in `live` tests.
+
+**Three honest caveats.**
+
+1. **Live "unique effect" is partly narrower hypotheses, not better discrimination.** The live agents proposed 1–2 candidates per incident, so ties often never formed. The deterministic exhaustive sweep proposes every step and therefore *finds* the tie that dominance analysis then resolves. Fewer hypotheses means fewer ties, which is not the same as resolving them.
+2. **The live run is not reproducible from a clean clone.** Its cassette lives under `data/artifacts/`, which is gitignored. Committing benchmark cassettes is a P7 task.
+3. **Repairs are selected from a fixed library, not written by the model.** The agent chooses a kind; Python applies and measures it. That keeps repairs executable and testable, but it means the repair agent's job is selection, not synthesis — a real narrowing of what "the agent proposes a repair" means.
+
+**DECISION: KEEP.** The vertical slice is closed: incident → evidenced cause → tested repair, end to end, with agents proposing and Python deciding.
+
+---
+
 ## Experiment log
 
 *(Empty. First entries expected in P4 — replay determinism findings — and P7 — baseline comparison.)*

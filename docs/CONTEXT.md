@@ -2,14 +2,42 @@
 
 **Purpose:** if the session ends or context resets, this file alone (plus the docs it points to) must be enough to continue accurately. Written for a reader who remembers nothing.
 
-**Last updated:** 2026-08-30 — end of P4.
-**Current phase:** P4 complete → next is **P5 Minimal forensic pipeline (the MVP vertical slice)**.
+**Last updated:** 2026-08-30 — end of P5.
+**Current phase:** P5 complete → next is **P6 Immunity Vault**.
 
 ---
 
 ## What was completed this cycle
 
-**P4 — the replay engine.** The highest-risk phase, and it passed.
+**P5 — the MVP vertical slice, closed.** Incident → evidenced cause → tested repair.
+
+- `forensics/schemas.py` — strict Pydantic I/O for all four agents.
+- `forensics/parsing.py` — recovers JSON from fenced/preambled model output; raises `AgentOutputError` rather than guessing.
+- `forensics/redaction.py` — **the single place agents are denied ground truth.** If an agent could see `true_causal_step`, every accuracy number would be meaningless.
+- `forensics/agents.py` — Investigator, CounterfactualPlanner, RepairAgent, Verifier. Prompts are versioned files in `forensics/prompts/`, not inline strings, because they are experimental variables.
+- `forensics/orchestrator.py` — wires proposals to measurement and builds the report.
+- `replay/chain.py` — **discharges most of D-016**: separates cause from consequence by measurement (does correcting A normalize B?) instead of the earliest-step heuristic.
+- `replay/repair.py` — guard library + evaluation on **two** axes: prevention rate and false-block rate.
+
+### Results
+
+**Deterministic path (no LLM): 5/5 localization.**
+
+| incident | cause | resolution | repair | prevent | false-block | accepted |
+|---|---|---|---|---:|---:|---|
+| I-001 | s0007 ✅ | **dominance measured** | validate_policy_freshness | 1.00 | 0.00 | ✅ |
+| I-002 | s0019 ✅ | unique effect | idempotent_refund | 1.00 | 0.00 | ✅ |
+| I-003 | s0009 ✅ | unique effect | rederive_approval | 1.00 | 0.00 | ✅ |
+| I-004 | s0007 ✅ | **dominance measured** | validate_policy_freshness | 1.00 | 0.00 | ✅ |
+| I-005 | s0007 ✅ | earliest-step *heuristic* | *none acceptable* | 1.00 | 0.20 | ❌ |
+
+**Live agents (`gemini-3.7-flash`, 263s): 5/5 localization, 5/5 agent-sourced hypotheses.** The fallback never fired. The planner chose `skip_tool_call` for I-002 unaided — the case value replacement structurally cannot reach.
+
+`block_all_refunds` sits in the library deliberately as a plausible-looking bad option. It prevents 4/5 incidents and is rejected every time on false-block 0.20.
+
+---
+
+### Earlier: P4 — the replay engine. The highest-risk phase, and it passed.
 
 - `replay/intervention.py` — `InterventionSpec`: replace a tool result, skip a call, suppress the injected fault. Step ids resolve to `(tool, occurrence)`.
 - `replay/engine.py` — **deterministic re-execution, not playback** (D-014). Playback cannot answer a counterfactual: after an intervention the run must be free to diverge, and that divergence is the measurement.
@@ -72,7 +100,7 @@ I-001 and I-005 reach the *same* outcome by different mechanisms (corrupt tool v
 
 ## What currently works
 
-- `pytest backend/tests -q` → **329 passed** in ~2.3s, fully offline. Plus 3 opt-in `live` tests against the real model.
+- `pytest backend/tests -q` → **386 passed** in ~2.1s, fully offline. Plus 5 opt-in `live` tests against the real model.
 - All 5 incidents reproduce their failure at rate 1.00 (measured over 20 trials each).
 - All 5 clean scenarios still PASS with no injection recorded.
 - Identical seed → identical trace content hash **and** identical world state hash, verified across all 5 scenarios.
@@ -93,7 +121,7 @@ All 5 P2 acceptance criteria, each with a named test (mapped in `docs/TESTING.md
 uv venv --python 3.12 .venv                                  # python3 -m venv is broken here
 uv pip install --python .venv/bin/python -e "backend[dev]"
 
-.venv/bin/python -m pytest backend/tests -q                  # 329 passed
+.venv/bin/python -m pytest backend/tests -q                  # 386 passed
 .venv/bin/python -m pytest backend/tests -m live -q          # 3 passed, needs GEMINI_API_KEY
 .venv/bin/python -m uvicorn aftermath.api.app:app --port 8000
 ```
@@ -134,7 +162,13 @@ ORD-2008 is the only `pending` order (the sole cancellable one). ORD-2011 is cle
 
 ## Next recommended task
 
-**P4.1 — prove byte-identical strict replay, before building anything else on top of it.**
+**P6.1 — the Immunity Vault.** Convert a verified P5 report into a permanent regression case, then prove the case works with two controls: it must **FAIL against the unrepaired agent** and **PASS against the repaired one**. Both asserted in Python. Everything needed already exists: `RepairSpec` + `RepairGuard` apply a fix, and the incident definitions carry scenario/seed/injection/oracle.
+
+Then the suite runner against an arbitrary agent version, the release-gate report, and a deliberately reintroduced bug to confirm the suite catches it.
+
+**Watch out:** I-005 has no acceptable repair, so it cannot yet become an immunity case. That is the correct behaviour — do not force one.
+
+### Superseded: P4.1 — prove byte-identical strict replay
 
 This is the make-or-break result of the whole project. Take a stored trace, restore world state, re-execute with every nondeterministic call served from the record, and assert the replayed trace's `content_hash()` equals the original's. The pieces are already in place: `Trace.content_hash()` excludes wall-clock fields precisely so this comparison is meaningful, `RecordingProvider` in REPLAY mode raises rather than re-sampling, and `world_snapshot_ref` is recorded on every state-changing call.
 
