@@ -63,28 +63,12 @@
       "prompt_tokens": 456
     }
   },
-  "sha256:13748abb4cbc967b3b3f3c8314982865a2a93db062477f51de3a5c5937b40469": {
-    "model": "gemini-3.1-pro-preview",
-    "text": "```json\n{\"experiments\": [\n  {\n    \"suspected_step_id\": \"s0003\",\n    \"intervention_kind\": \"replace_tool_result\",\n    \"use_healthy_value\": true,\n    \"rationale\": \"Replacing the tool result with a healthy value will test if this step returned a wrong value that caused the failure.\"\n  },\n  {\n    \"suspected_step_id\": \"s0005\",\n    \"intervention_kind\": \"replace_tool_result\",\n    \"use_healthy_value\": true,\n    \"rationale\": \"Replacing the tool result with a healthy value will test if this step returned a wrong value that caused the failure.\"\n  },\n  {\n    \"suspected_step_id\": \"s0007\",\n    \"intervention_kind\": \"replace_tool_result\",\n    \"use_healthy_value\": true,\n    \"rationale\": \"Replacing the tool result with a healthy value will test if this step returned a wrong value that caused the failure.\"\n  },\n  {\n    \"suspected_step_id\": \"s0009\",\n    \"intervention_kind\": \"replace_tool_result\",\n    \"use_healthy_value\": true,\n    \"rationale\": \"Replacing the tool result with a healthy value will test if this step returned a wrong value that caused the failure.\"\n  }\n]}\n```",
-    "usage": {
-      "completion_tokens": 319,
-      "prompt_tokens": 478
-    }
-  },
   "sha256:16d9ee51a845926bdaf5952e112760598e3ed30abb20dad119b8ba58d984c858": {
     "model": "gemini-3.1-pro-preview",
     "text": "```json\n{\"proposals\": [{\"kind\": \"validate_policy_freshness\", \"rationale\": \"The refund was incorrectly marked as ineligible despite the age being within the window, likely because a stale policy version was used. Validating policy freshness ensures the current effective policy is applied.\"}]}\n```",
     "usage": {
       "completion_tokens": 62,
       "prompt_tokens": 477
-    }
-  },
-  "sha256:172c2a40263b7781eaecca35f000c2f90549d50218dd0d48ca251945fb847e04": {
-    "model": "gemini-3.1-pro-preview",
-    "text": "```json\n{\"evidence_sufficient\": true,\n \"concerns\": [\"The experiments clearly isolate s0007 as the root cause with an effect size of 1.0 compared to 0.0 for s0008.\", \"The repair successfully prevented the incident in all 3 trials and did not break any of the 5 normal cases.\"],\n \"residual_risk\": \"The repair focuses specifically on policy freshness. It does not protect against the retrieval of 'fresh' but otherwise incorrect or corrupted policies, nor does it address potential staleness in other types of retrieved data (e.g., user profiles or transaction histories). It also assumes the agent will correctly handle the fresh policy once validated.\"}\n```",
-    "usage": {
-      "completion_tokens": 149,
-      "prompt_tokens": 807
     }
   },
   "sha256:1794ad98673f79139dbd78271abe7825582c5a746e186e4b9850e0356fe8bf88": {
@@ -143,14 +127,6 @@
       "prompt_tokens": 497
     }
   },
-  "sha256:32eea79a0b5e753cee62d3fd1e627bd5939e43e8f94c21f4e11a2803506c8f01": {
-    "model": "gemini-3.1-pro-preview",
-    "text": "```json\n{\n  \"experiments\": [\n    {\n      \"suspected_step_id\": \"s0003\",\n      \"intervention_kind\": \"replace_tool_result\",\n      \"use_healthy_value\": true,\n      \"rationale\": \"Replacing the tool result with a healthy value tests if this step's output caused the failure.\"\n    },\n    {\n      \"suspected_step_id\": \"s0005\",\n      \"intervention_kind\": \"replace_tool_result\",\n      \"use_healthy_value\": true,\n      \"rationale\": \"Replacing the tool result with a healthy value tests if this step's output caused the failure.\"\n    },\n    {\n      \"suspected_step_id\": \"s0007\",\n      \"intervention_kind\": \"replace_tool_result\",\n      \"use_healthy_value\": true,\n      \"rationale\": \"Replacing the tool result with a healthy value tests if this step's output caused the failure.\"\n    },\n    {\n      \"suspected_step_id\": \"s0009\",\n      \"intervention_kind\": \"replace_tool_result\",\n      \"use_healthy_value\": true,\n      \"rationale\": \"Replacing the tool result with a healthy value tests if this step's output caused the failure.\"\n    },\n    {\n      \"suspected_step_id\": \"s0013\",\n      \"intervention_kind\": \"replace_tool_result\",\n      \"use_healthy_value\": true,\n      \"rationale\": \"Replacing the tool result with a healthy value tests if this step's output caused the failure.\"\n    }\n  ]\n}\n```",
-    "usage": {
-      "completion_tokens": 387,
-      "prompt_tokens": 535
-    }
-  },
   "sha256:332c32647fc0be9ae5d49547007f7f0d3fce5a07c9ce87f24eeb4835478bbd64": {
     "model": "gemini-3.1-pro-preview",
     "text": "```json\n{\"hypotheses\": [\n  {\n    \"suspected_step_id\": \"s0008\",\n    \"mechanism\": \"The agent omitted the 'amount_cents' argument when calling the 'calculate_refund' tool, causing the tool to default to 1 cent instead of the full order amount.\",\n    \"confidence\": 0.9,\n    \"supporting_step_ids\": [\n      \"s0009\",\n      \"s0012\"\n    ],\n    \"falsifiable_prediction\": \"Adding '\\\"amount_cents\\\": 30700' to the arguments in the tool call at s0008 will cause calculate_refund to return the correct amount, leading the agent to request approval for and issue a refund of 30700 cents.\"\n  }\n]}\n```",
@@ -189,14 +165,6 @@
     "usage": {
       "completion_tokens": 205,
       "prompt_tokens": 1272
-    }
-  },
-  "sha256:3c6722367c99098148a8c5ab1be87a5fb58ad19126cac758bbaf741756c18c8b": {
-    "model": "gemini-3.1-pro-preview",
-    "text": "```json\n{\"proposals\": [{\"kind\": \"validate_policy_freshness\", \"rationale\": \"The oracle 'refund_within_current_policy' failed because the refund was evaluated against a stale policy version ('v2'). Validating policy freshness ensures the currently effective policy is used to determine eligibility.\"}]}\n```",
-    "usage": {
-      "completion_tokens": 67,
-      "prompt_tokens": 476
     }
   },
   "sha256:41737da6f60a3f29bda75e0e9fb2929d1719b62e449b7def5b8379b6797b853c": {
@@ -247,14 +215,6 @@
       "prompt_tokens": 472
     }
   },
-  "sha256:4e62b0e472faa4e9e330cc450fb03663b4767a8cdcb26ae9329653e02774fb09": {
-    "model": "gemini-3.1-pro-preview",
-    "text": "```json\n{\"proposals\": [{\"kind\": \"validate_policy_freshness\", \"rationale\": \"The tool calculated a refund using policy version 'v2', which resulted in an under-refund (likely because it incorrectly required approval or calculated the wrong amount). Validating policy freshness ensures the current, effective policy is used, preventing under-refunds caused by stale policy rules.\"}]}\n```",
-    "usage": {
-      "completion_tokens": 82,
-      "prompt_tokens": 476
-    }
-  },
   "sha256:4ec6a0b3794f0c410e19a57dc8c66bee6b80be3a458dbf313ab85836a89f7c34": {
     "model": "gemini-3.1-pro-preview",
     "text": "```json\n{\"experiments\": [\n  {\"suspected_step_id\": \"s0014\",\n   \"intervention_kind\": \"skip_tool_call\",\n   \"use_healthy_value\": true,\n   \"rationale\": \"Skipping the duplicate tool call will prevent the refund from being issued twice, testing if this redundant action caused the failure.\"}\n]}\n```",
@@ -279,28 +239,12 @@
       "prompt_tokens": 467
     }
   },
-  "sha256:557d4ca73b208616b7c0e9d88ab46de2aae3cea898bad951919f9307c06c833d": {
-    "model": "gemini-3.1-pro-preview",
-    "text": "```json\n{\"experiments\": [\n  {\n    \"suspected_step_id\": \"s0003\",\n    \"intervention_kind\": \"replace_tool_result\",\n    \"use_healthy_value\": true,\n    \"rationale\": \"To test if the tool result at s0003 caused the failure, we replace it with the healthy value.\"\n  },\n  {\n    \"suspected_step_id\": \"s0005\",\n    \"intervention_kind\": \"replace_tool_result\",\n    \"use_healthy_value\": true,\n    \"rationale\": \"To test if the tool result at s0005 caused the failure, we replace it with the healthy value.\"\n  },\n  {\n    \"suspected_step_id\": \"s0007\",\n    \"intervention_kind\": \"replace_tool_result\",\n    \"use_healthy_value\": true,\n    \"rationale\": \"To test if the tool result at s0007 caused the failure, we replace it with the healthy value.\"\n  },\n  {\n    \"suspected_step_id\": \"s0009\",\n    \"intervention_kind\": \"replace_tool_result\",\n    \"use_healthy_value\": true,\n    \"rationale\": \"To test if the tool result at s0009 caused the failure, we replace it with the healthy value.\"\n  },\n  {\n    \"suspected_step_id\": \"s0012\",\n    \"intervention_kind\": \"replace_tool_result\",\n    \"use_healthy_value\": true,\n    \"rationale\": \"To test if the tool result at s0012 caused the failure, we replace it with the healthy value.\"\n  }\n]}\n```",
-    "usage": {
-      "completion_tokens": 406,
-      "prompt_tokens": 535
-    }
-  },
   "sha256:56a6ca7ff4adfd03f2d09750c1a522fa299d9b89cb47c408e301e7a3bfdfa04d": {
     "model": "gemini-3.1-pro-preview",
     "text": "```json\n{\"evidence_sufficient\": false,\n \"concerns\": [\"The repair completely failed to prevent the incident (0 out of 3 incident trials prevented).\", \"The successful experiment (s0009) indicates the root cause is an incorrect refund amount returned by the calculate_refund tool, but the proposed repair targets policy freshness and does not resolve the issue.\"],\n \"residual_risk\": \"The agent will continue to calculate incorrect refund amounts and request human approval for the wrong amounts, leading to under-refunds or blocked refunds.\"}\n```",
     "usage": {
       "completion_tokens": 115,
       "prompt_tokens": 838
-    }
-  },
-  "sha256:5964208a0b90fcc3d924cebaea3c89b00603ff2f4a1d6b82f51d28cdb6053557": {
-    "model": "gemini-3.1-pro-preview",
-    "text": "```json\n{\"hypotheses\": [\n  {\n    \"suspected_step_id\": \"s0008\",\n    \"mechanism\": \"The agent called `calculate_refund` with `policy_version: \\\"v0\\\"`, which resulted in an error because the tool does not recognize that version. The agent should have either omitted the `policy_version` argument or called `issue_refund` directly.\",\n    \"confidence\": 0.9,\n    \"supporting_step_ids\": [\n      \"s0009\"\n    ],\n    \"falsifiable_prediction\": \"Modifying the tool call in s0008 to call `issue_refund` directly with `order_id: \\\"ORD-2007\\\"` (or removing the `policy_version` argument from `calculate_refund`) will prevent the error and lead to a successful refund.\"\n  }\n]}\n```",
-    "usage": {
-      "completion_tokens": 200,
-      "prompt_tokens": 1287
     }
   },
   "sha256:5a4eb6714ebd45cd91023b63dc2c878e6f3adc14fdaddc01893825ffb109ccef": {
@@ -399,14 +343,6 @@
       "prompt_tokens": 472
     }
   },
-  "sha256:755f7fc663e6fb6180aca265168836cc5cc827dd8219fe7379df156b451b7c48": {
-    "model": "gemini-3.1-pro-preview",
-    "text": "```json\n{\"evidence_sufficient\": false,\n \"concerns\": [\"The repair evaluation shows a prevention rate of 0.0 (0 out of 3 incident trials prevented), meaning the repair completely failed to prevent the incident.\", \"The rationale claims policy 'v2' was stale, but the successful experiment on s0009 also used 'v2' and simply changed 'eligible' and 'requires_approval' to true.\"],\n \"residual_risk\": \"The repair is ineffective, leaving the system entirely vulnerable to the original failure (incorrectly denying refunds).\"}\n```",
-    "usage": {
-      "completion_tokens": 121,
-      "prompt_tokens": 1414
-    }
-  },
   "sha256:79734fe906d5a2b8379822fb1fb727a05d9b6ec564a69e82112cd59accd8b815": {
     "model": "gemini-3.1-pro-preview",
     "text": "```json\n{\"experiments\": [\n  {\n    \"suspected_step_id\": \"s0009\",\n    \"intervention_kind\": \"replace_tool_result\",\n    \"use_healthy_value\": true,\n    \"rationale\": \"Replacing the incorrect tool result at s0009 with the expected healthy value (17200 cents) tests whether the incorrect output from the calculate_refund tool caused the agent to issue the wrong refund amount.\"\n  }\n]}\n```",
@@ -439,14 +375,6 @@
       "prompt_tokens": 480
     }
   },
-  "sha256:813590a091b51c13f951d36ea927f3822c50250bbc95f2242362e3d05b709dcc": {
-    "model": "gemini-3.1-pro-preview",
-    "text": "```json\n{\"evidence_sufficient\": true,\n \"concerns\": [\"None of the individual tool result replacements prevented the failure. The failure might be caused by a combination of steps, an issue with the initial prompt, or a systemic logic error not isolated to a single tool output.\"],\n \"residual_risk\": \"The root cause of the incident remains completely unknown and unmitigated.\"}\n```",
-    "usage": {
-      "completion_tokens": 82,
-      "prompt_tokens": 1307
-    }
-  },
   "sha256:82c3ea488b636b3a4fd43ebf97e84048d3359dbf3f999ce962be88b077cd5d74": {
     "model": "gemini-3.1-pro-preview",
     "text": "```json\n{\"hypotheses\": [\n  {\n    \"suspected_step_id\": \"s0011\",\n    \"mechanism\": \"The agent incorrectly reasons that the order is outside the refund window, ignoring the 'requires_approval: true' flag and the fact that age_days (7) is less than window_days (30). It should have recognized that the refund needs approval because the amount exceeds the auto-refund limit.\",\n    \"confidence\": 0.9,\n    \"supporting_step_ids\": [\n      \"s0009\"\n    ],\n    \"falsifiable_prediction\": \"Changing the thought at s0011 to recognize that the order is within the window but requires approval will cause the agent to request approval instead of denying the refund.\"\n  },\n  {\n    \"suspected_step_id\": \"s0010\",\n    \"mechanism\": \"The agent incorrectly evaluates the policy check as failed due to the refund window ('order age 7d vs window 30d'), committing a logic error since 7 is less than 30.\",\n    \"confidence\": 0.8,\n    \"supporting_step_ids\": [\n      \"s0009\"\n    ],\n    \"falsifiable_prediction\": \"Correcting the policy check at s0010 to reflect that the window check passed (or that approval is required) will prevent the agent from falsely claiming the window expired and lead it to seek approval.\"\n  }\n]}\n```",
@@ -461,14 +389,6 @@
     "usage": {
       "completion_tokens": 194,
       "prompt_tokens": 595
-    }
-  },
-  "sha256:89e5ab7671a595dcd719173af165ce5b363b1b1679d654d11c689632225f4008": {
-    "model": "gemini-3.1-pro-preview",
-    "text": "```json\n{\"proposals\": [{\"kind\": \"validate_policy_freshness\", \"rationale\": \"The refund was incorrectly denied (under-refunded) despite the age of the order being within the policy window. The oracle 'refund_within_current_policy' indicates that the policy version used ('v2') was likely stale, leading to an incorrect eligibility determination. Validating policy freshness ensures the current, effective policy is used.\"}]}\n```",
-    "usage": {
-      "completion_tokens": 94,
-      "prompt_tokens": 476
     }
   },
   "sha256:8b29465420ccf4d79d4a10fb3f8aa64aa6a92f6b651ec477d387e81379aee0c7": {
@@ -575,14 +495,6 @@
       "prompt_tokens": 705
     }
   },
-  "sha256:a60986d328fb84b858560c05bf4d9015c788164fe2ab6fad5cd0b87360520d57": {
-    "model": "gemini-3.1-pro-preview",
-    "text": "```json\n{\"experiments\": [\n  {\"suspected_step_id\": \"s0008\",\n   \"intervention_kind\": \"skip_tool_call\",\n   \"use_healthy_value\": true,\n   \"rationale\": \"The tool call in s0008 was made with an invalid argument (policy_version: 'v0'). Skipping this erroneous tool call tests whether the agent will instead make the correct call (either omitting the argument or calling issue_refund directly) and avoid the subsequent error.\"}\n]}\n```",
-    "usage": {
-      "completion_tokens": 118,
-      "prompt_tokens": 487
-    }
-  },
   "sha256:abd6a61d0689b8adcbd42dc58fba3886e53cdb75d633900c56ecc79b0c4817fc": {
     "model": "gemini-3.1-pro-preview",
     "text": "```json\n{\"experiments\": [\n  {\n    \"suspected_step_id\": \"s0011\",\n    \"intervention_kind\": \"replace_tool_result\",\n    \"use_healthy_value\": true,\n    \"rationale\": \"Replacing the incorrect reasoning at s0011 with the correct evaluation (that the order is within the window and requires approval) tests if this logic error caused the agent to deny the refund.\"\n  },\n  {\n    \"suspected_step_id\": \"s0010\",\n    \"intervention_kind\": \"replace_tool_result\",\n    \"use_healthy_value\": true,\n    \"rationale\": \"Replacing the policy check evaluation at s0010 with the correct outcome tests if the incorrect window check caused the agent to falsely claim the window expired.\"\n  }\n]}\n```",
@@ -597,14 +509,6 @@
     "usage": {
       "completion_tokens": 145,
       "prompt_tokens": 2386
-    }
-  },
-  "sha256:b0f067ff3620ff26a1a7d992fc1303d7bbabb4c860530e08919e683716b33531": {
-    "model": "gemini-3.1-pro-preview",
-    "text": "```json\n{\"experiments\": [\n  {\n    \"suspected_step_id\": \"s0008\",\n    \"intervention_kind\": \"skip_tool_call\",\n    \"use_healthy_value\": true,\n    \"rationale\": \"Since s0008 is a tool_call containing an invalid argument, skipping it removes the erroneous action from the context to test if this specific call caused the subsequent error.\"\n  },\n  {\n    \"suspected_step_id\": \"s0007\",\n    \"intervention_kind\": \"replace_tool_result\",\n    \"use_healthy_value\": true,\n    \"rationale\": \"Replacing the tool result at s0007 with a healthy value tests if the invalid policy version returned by the tool caused the agent to pass the wrong argument in the subsequent tool call.\"\n  }\n]}\n```",
-    "usage": {
-      "completion_tokens": 195,
-      "prompt_tokens": 610
     }
   },
   "sha256:b3c9c6b3978f8c9d7f05731d3b0d5ca654f4bf8abe2a4ddf5066cbc5ebf82dee": {
@@ -759,28 +663,12 @@
       "prompt_tokens": 566
     }
   },
-  "sha256:e693ec0e8024a99d69e994302b7159042dea877cf30ccd7a0e1e53ca3d74116f": {
-    "model": "gemini-3.1-pro-preview",
-    "text": "```json\n{\"evidence_sufficient\": false,\n \"concerns\": [\"The repair failed to prevent the incident, with 0 out of 3 incident trials prevented (prevention rate of 0.0).\", \"While step s0009 was identified as the root cause with a unique effect size of 1.0, the proposed repair ('validate_policy_freshness') was completely ineffective at mitigating the issue.\"],\n \"residual_risk\": \"The system remains entirely vulnerable to the original incident, as the repair does not prevent the failure condition (likely related to incorrect policy version usage or eligibility evaluation).\"}\n```",
-    "usage": {
-      "completion_tokens": 130,
-      "prompt_tokens": 1384
-    }
-  },
   "sha256:e79afc2e0f90c6650b8bb7d5590e45bc76e9774c05c471ccc3315707fa3ea099": {
     "model": "gemini-3.1-pro-preview",
     "text": "```json\n{\"evidence_sufficient\": true,\n \"concerns\": [\"Only one step was tested, though it showed a complete prevention of the incident.\", \"The repair relies on making refunds idempotent, but the exact idempotency key is not specified. If keyed only by order ID, it could block legitimate multiple partial refunds.\", \"The small number of normal cases (5) might not adequately test edge cases like legitimate multiple partial refunds.\"],\n \"residual_risk\": \"Legitimate multiple partial refunds for the same order could be blocked if the idempotency key is too broad (e.g., order ID instead of a unique refund request ID). Other non-refund operations might still lack idempotency and be vulnerable to duplicate calls.\"}\n```",
     "usage": {
       "completion_tokens": 150,
       "prompt_tokens": 494
-    }
-  },
-  "sha256:e8079b6d37a49e05cdee373f11c9efe6848cfb34b10c0869d01df0ece0db040e": {
-    "model": "gemini-3.1-pro-preview",
-    "text": "```json\n{\"evidence_sufficient\": false,\n \"concerns\": [\"The proposed repair completely failed to prevent the incident (0 out of 3 trials prevented, prevention rate 0.0).\", \"While step s0009 was clearly identified as the causal step with an effect size of 1.0, the implemented repair ('validate_policy_freshness') does not address the root cause or fails to intervene correctly.\"],\n \"residual_risk\": \"The incident remains entirely unmitigated. The system is still vulnerable to the same failure mode since the repair had no effect.\"}\n```",
-    "usage": {
-      "completion_tokens": 125,
-      "prompt_tokens": 1652
     }
   },
   "sha256:ebf51c4287e691d03ad49ee601562598dec45ed053e7dc5a2e2f2ea3a25dd850": {
@@ -821,14 +709,6 @@
     "usage": {
       "completion_tokens": 272,
       "prompt_tokens": 1687
-    }
-  },
-  "sha256:f41367fa3b83c3da1fa04b58ce1a3fe8ade9108203a8ef90fbfe2efb16da3895": {
-    "model": "gemini-3.1-pro-preview",
-    "text": "```json\n{\"evidence_sufficient\": true,\n \"concerns\": [\"There is a tie in effect size between s0007 (policy read) and s0009 (eligibility check), though s0007 is logically upstream.\", \"The repair evaluation shows 100% prevention and 0% false block rate, supporting the repair's effectiveness.\"],\n \"residual_risk\": \"The repair only validates policy freshness; it does not cover cases where the policy is fresh but the eligibility logic itself is flawed, or if the policy database is unavailable.\"}\n```",
-    "usage": {
-      "completion_tokens": 123,
-      "prompt_tokens": 1398
     }
   },
   "sha256:f43422258b41023357b14a5290b70d97e21b2f8da8104766392645ea0634e344": {

@@ -6,7 +6,7 @@
 >
 > Root cause correctly localized in **5/5 seed incidents**, both on the deterministic path and against live agents (where **5/5 hypotheses were agent-proposed**, not fallback). Repairs are measured on prevention *and* on whether they break legitimate cases; 4/5 incidents get an accepted repair, and the fifth is reported as having none rather than being given a bad one. 386 tests, all offline.
 >
-> **The baseline won the headline comparison, and that is published rather than buried.** See Benchmark results below. 816 tests, all offline.
+> The baseline initially **beat** AFTERMATH's agent pipeline (0.90 vs 0.75). One measured fix closed the gap to a **tie**. AFTERMATH's *deterministic* configuration scores **0.95** and beats the baseline. All three numbers are published below. 819 tests, all offline.
 
 ---
 
@@ -79,16 +79,26 @@ Python · FastAPI · deterministic replay engine · SQLite · pytest · React/Ne
 | configuration | localization | exact | wrong | abstained |
 |---|---:|---:|---:|---:|
 | AFTERMATH — deterministic counterfactual sweep | **0.95** | 19 | 0 | 1 |
+| AFTERMATH — LLM agents + sweep fallback | **0.90** | 18 | 1 | 1 |
 | Baseline — one capable LLM, no replay | **0.90** | 18 | 2 | 0 |
-| AFTERMATH — with LLM forensic agents | **0.75** | 15 | 1 | 4 |
+| AFTERMATH — LLM agents alone *(superseded)* | 0.75 | 15 | 1 | 4 |
 
-**The baseline beat AFTERMATH's agent pipeline, 0.90 to 0.75.** That is the headline and it is not spun.
+**What this says, plainly:**
 
-The third row is what makes the result useful. AFTERMATH's *deterministic* configuration — counterfactual replay with an exhaustive candidate sweep and no LLM agents at all — scores **0.95** and beats the baseline. **The evidence machinery works; the current agent layer is a net negative**, because it proposes 1–2 hypotheses per incident and, when it misses, the pipeline has nothing to test and correctly reports *no cause found*.
+1. **Counterfactual replay beats a capable LLM** — 0.95 vs 0.90, on the same incidents with the same grader.
+2. **The LLM agent layer has not yet earned its place.** Alone it scored 0.75, *worse* than the baseline, because it proposes 1–2 hypotheses and abstains when they miss. A fallback to the exhaustive sweep lifted it to 0.90 — a tie with the baseline, still below the deterministic engine it sits on top of.
+3. AFTERMATH is wrong less often than the baseline (1 vs 2) and abstains rather than guessing. **The metric does not penalize guessing**, which structurally favours a system that always answers. That is a property of the metric as much as of the systems, and is noted rather than used as an excuse.
 
-AFTERMATH was wrong once. The baseline was wrong twice. AFTERMATH's entire deficit is four abstentions — and **the metric does not penalize guessing**, which structurally favours a system that always answers over one that refuses without evidence. That is a property of the metric as much as of the systems, and it is noted rather than used as an excuse.
+**Both grading conventions**, because they disagree about who leads. Three of the wrong answers across both systems name the `tool_call` step instead of the `tool_result` step *of the same call* — a labelling difference, not a different diagnosis:
 
-Every number above is read from `data/results/`. The fairness review of the baseline prompt is [D-017](docs/DECISIONS.md); the reasoning for not tuning the guard library after seeing results is [D-019](docs/DECISIONS.md).
+| convention | AFTERMATH | Baseline |
+|---|---:|---:|
+| strict — result step only | **0.90** | **0.90** |
+| lenient — either step of the correct call | 0.95 | **1.00** |
+
+Picking one would be choosing a headline, so both are given.
+
+Every number above is read from `data/results/` — including the superseded 0.75 run, retained because the before/after *is* the evidence that the fix worked. The fairness review of the baseline prompt is [D-017](docs/DECISIONS.md); the reasoning for not tuning the guard library after seeing results is [D-019](docs/DECISIONS.md).
 
 **Limits.** 20 synthetic incidents: one answer moves a rate by 5 points, so a 3-incident gap is suggestive, not conclusive. Results demonstrate mechanism viability, not production accuracy.
 
@@ -100,7 +110,7 @@ The backend runs fully offline on a deterministic mock provider — no API key n
 uv venv --python 3.12 .venv
 uv pip install --python .venv/bin/python -e "backend[dev]"
 
-.venv/bin/python -m pytest backend/tests -q                 # 816 passed
+.venv/bin/python -m pytest backend/tests -q                 # 819 passed
 .venv/bin/python -m uvicorn aftermath.api.app:app --port 8000
 curl -s localhost:8000/health
 ```

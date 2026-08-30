@@ -54,6 +54,10 @@ class HypothesisSource(StrEnum):
     # Used when the investigator produced nothing usable. Honest and effective,
     # but it means the model contributed nothing to that run, so the report says so.
     EXHAUSTIVE_FALLBACK = "exhaustive_fallback"
+    # The agent proposed hypotheses, none survived measurement, and the
+    # exhaustive sweep was run as a second pass. Recorded distinctly so a report
+    # never implies the agent found something it did not.
+    AGENT_THEN_SWEEP = "agent_then_sweep"
 
 
 class CauseResolution(StrEnum):
@@ -128,25 +132,28 @@ class ForensicOrchestrator:
             except (AgentOutputError, LLMError) as exc:
                 errors.append(f"investigator: {exc}")
 
-        # Exhaustive sweep. Candidates are every step that carries a value AND
-        # every duplicated action: a retry fault lives on a tool_call, so a sweep
-        # over results alone would be structurally unable to find it.
+        return self._exhaustive_candidates(trace), HypothesisSource.EXHAUSTIVE_FALLBACK
+
+    @staticmethod
+    def _exhaustive_candidates(trace: Trace) -> list[Hypothesis]:
+        """Every step worth testing: value-carrying results AND duplicated actions.
+
+        A retry fault lives on a `tool_call`, so a sweep over results alone would
+        be structurally unable to find it.
+        """
         candidates = list(addressable_steps(trace)) + [
             s.step_id
             for s in trace.steps
             if s.type is StepType.TOOL_CALL and _is_duplicate_call(trace, s.step_id)
         ]
-        return (
-            [
-                Hypothesis(
-                    suspected_step_id=step_id,
-                    mechanism="exhaustive candidate (no usable agent hypothesis)",
-                    confidence=0.0,
-                )
-                for step_id in sorted(set(candidates))
-            ],
-            HypothesisSource.EXHAUSTIVE_FALLBACK,
-        )
+        return [
+            Hypothesis(
+                suspected_step_id=step_id,
+                mechanism="exhaustive candidate",
+                confidence=0.0,
+            )
+            for step_id in sorted(set(candidates))
+        ]
 
     def _plan(
         self, trace: Trace, hypotheses: list[Hypothesis], errors: list[str]
@@ -235,6 +242,23 @@ class ForensicOrchestrator:
 
         ranked = rank_by_effect(results)
         tied = [r.intervention.step_id for r in ranked if r.effect_size >= EFFECT_THRESHOLD]
+
+        # P8.1: agent hypotheses that survive no measurement leave the pipeline
+        # with nothing to test, and it abstains. Measured in P7 as the single
+        # largest source of lost accuracy (4 of 5 misses). The evidence engine
+        # can enumerate candidates itself, so fall back to the exhaustive sweep
+        # rather than reporting no cause. Recorded as AGENT_THEN_SWEEP so the
+        # report never credits the agent with a cause the sweep found.
+        if not tied and source is HypothesisSource.AGENT:
+            errors.append("no agent hypothesis survived measurement; ran exhaustive sweep")
+            hypotheses = self._exhaustive_candidates(trace)
+            planned = self._plan(trace, hypotheses, errors)
+            results, specs = self._experiment(
+                incident, trace, healthy, planned, hypotheses, errors
+            )
+            ranked = rank_by_effect(results)
+            tied = [r.intervention.step_id for r in ranked if r.effect_size >= EFFECT_THRESHOLD]
+            source = HypothesisSource.AGENT_THEN_SWEEP
 
         root, resolution, edges = self._resolve_cause(incident, trace, healthy, tied, specs)
 

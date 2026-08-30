@@ -309,6 +309,46 @@ Nothing about the architecture, and the correct conclusions are narrow:
 
 ---
 
+## 2026-08-30 — P8.1: sweep fallback. **0.75 → 0.90, now tied with the baseline.**
+
+**WHAT WE TRIED.** The single fix P7 pointed at: when no agent hypothesis survives measurement, fall back to the exhaustive candidate sweep instead of abstaining.
+
+**WHY.** P7 localized the agent layer's deficit precisely — 4 of 5 misses were abstentions caused by agents proposing 1–2 hypotheses that missed. The evidence engine can enumerate candidates itself; there was no reason to throw the incident away.
+
+**METHOD — and why it is attributable.** Re-run against the **P7 cassette**, so the agents' answers were served from the record and are byte-identical to the P7 run. Only the orchestration changed. The baseline was untouched. Any difference is therefore attributable to the fix and to nothing else — which is what the record/replay machinery was built for, now used on ourselves.
+
+| system | P7 | P8.1 | change |
+|---|---:|---:|---:|
+| AFTERMATH (live agents) | 0.75 | **0.90** | **+0.15** |
+| Baseline | 0.90 | 0.90 | unchanged |
+| verdict | BASELINE ahead | **TIED** | |
+
+Three of the four abstentions recovered (I-012, I-014, I-020). Reported as `AGENT_THEN_SWEEP`, distinct from `AGENT`, so a report never credits the agent with a cause the sweep found.
+
+**WHAT REMAINS — stated plainly.** The agent pipeline now **matches** the baseline. It does not beat it, and it is still below AFTERMATH's own deterministic sweep (0.95). Two incidents remain:
+
+- **I-005** — abstention, and correct: no intervention prevents the failure, so there is no evidenced cause.
+- **I-010** — the agent answers `s0006` (the `tool_call`) where ground truth is `s0007` (the `tool_result`) **of the same call**. The pure sweep answers `s0007` and gets it right.
+
+So the entire residual gap between the agent pipeline (0.90) and the deterministic sweep (0.95) is that one step-labelling case.
+
+**Both grading conventions, measured:**
+
+| convention | AFTERMATH | Baseline |
+|---|---:|---:|
+| strict — the result step only | **0.90** | **0.90** |
+| lenient — either step of the correct call | 0.95 | **1.00** |
+
+Published together, because they disagree about who is ahead. The strict convention ties; the lenient one puts the baseline at a perfect score. Picking one would be choosing a headline, so both are given. The grader keeps the strict convention it has always used.
+
+**Honest bottom line.** The fix worked and was worth doing, but the claim "AFTERMATH beats a plain LLM" is still **not supported by the agent pipeline**. What is supported: *counterfactual replay with an exhaustive sweep* beats a plain LLM (0.95 vs 0.90), and the LLM agent layer has yet to earn its place on top of it.
+
+**Artifacts.** `data/results/benchmark.json` (P8.1), `data/results/benchmark_p7_pre_fallback.json` (superseded, retained — the before/after *is* the evidence). `pytest` → 819 passed.
+
+**DECISION: KEEP.**
+
+---
+
 ## Experiment log
 
 *(Empty. First entries expected in P4 — replay determinism findings — and P7 — baseline comparison.)*

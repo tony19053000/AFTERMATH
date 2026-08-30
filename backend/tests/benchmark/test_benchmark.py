@@ -314,9 +314,27 @@ class TestCommittedBenchmarkArtifacts:
         """README/STATUS quote these; they must come from the file, not from prose."""
         payload = json.loads(self.RESULTS.read_text(encoding="utf-8"))
 
-        assert payload["aftermath_localization_rate"] == 0.75
+        assert payload["aftermath_localization_rate"] == 0.90
         assert payload["baseline_localization_rate"] == 0.90
-        assert payload["verdict"] == "BASELINE ahead"
+        assert payload["verdict"] == "TIED"
+
+    def test_the_p7_result_is_preserved_as_a_historical_record(self) -> None:
+        """A superseded result is kept, not overwritten.
+
+        P8.1 changed the orchestration, so the P7 numbers are no longer
+        reproducible by current code. They remain on disk because the
+        before/after comparison is the evidence that the fix worked.
+        """
+        p7 = json.loads(
+            (self.RESULTS.parent / "benchmark_p7_pre_fallback.json").read_text("utf-8")
+        )
+        current = json.loads(self.RESULTS.read_text(encoding="utf-8"))
+
+        assert p7["aftermath_localization_rate"] == 0.75
+        assert current["aftermath_localization_rate"] == 0.90
+        # The baseline is untouched by the change, which is what makes the
+        # comparison attributable to the orchestration fix.
+        assert p7["baseline_localization_rate"] == current["baseline_localization_rate"]
 
     def test_cassette_is_committed_and_secret_free(self) -> None:
         text = self.CASSETTE.read_text(encoding="utf-8")
@@ -339,3 +357,43 @@ class TestCommittedBenchmarkArtifacts:
         published = json.loads(self.RESULTS.read_text(encoding="utf-8"))
 
         assert comparison.to_artifact()["artifact_hash"] == published["artifact_hash"]
+
+
+class TestSweepFallback:
+    """P8.1: agents that propose nothing measurable must not cost accuracy."""
+
+    def test_fallback_is_recorded_distinctly_from_an_agent_find(self) -> None:
+        """A cause found by the sweep must never be credited to the agent."""
+        from aftermath.forensics.orchestrator import ForensicOrchestrator, HypothesisSource
+        from aftermath.llm.mock import MockProvider
+
+        # Agent names a real step that is not causal, so nothing survives.
+        scripted = MockProvider(
+            scripted={
+                "forensics:investigator": json.dumps(
+                    {"hypotheses": [{"suspected_step_id": "s0003", "mechanism": "wrong"}]}
+                )
+            }
+        )
+
+        report = ForensicOrchestrator(scripted, trials=2).investigate(INCIDENTS["I-001"])
+
+        assert report.hypothesis_source is HypothesisSource.AGENT_THEN_SWEEP
+        assert report.root_cause_step == truth_of("I-001")
+        assert any("exhaustive sweep" in e for e in report.agent_errors)
+
+    def test_a_correct_agent_hypothesis_does_not_trigger_the_sweep(self) -> None:
+        from aftermath.forensics.orchestrator import ForensicOrchestrator, HypothesisSource
+        from aftermath.llm.mock import MockProvider
+
+        scripted = MockProvider(
+            scripted={
+                "forensics:investigator": json.dumps(
+                    {"hypotheses": [{"suspected_step_id": truth_of("I-001"), "mechanism": "m"}]}
+                )
+            }
+        )
+
+        report = ForensicOrchestrator(scripted, trials=2).investigate(INCIDENTS["I-001"])
+
+        assert report.hypothesis_source is HypothesisSource.AGENT

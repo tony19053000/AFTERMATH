@@ -308,3 +308,21 @@ A test asserts these phrases are present, so the prompt cannot be quietly weaken
 **Consequences.** Reported repair coverage is 10/20 rather than a flattering number. The gap is recorded as a P8 item, where adding the guard and re-measuring is legitimate because the change is then made deliberately and its effect reported as a delta.
 
 **Reversible?** Yes — but if added, the before/after numbers must both be published.
+
+---
+
+## D-020 · 2026-08-30 · P8 reframed: fix the agent layer before expanding it
+
+**Decision.** P8's scope changes from "build the 16-agent swarm" to "establish whether *any* agent configuration beats the deterministic sweep, starting by fixing the measured defect." The agent-count sweep still happens; it is no longer presumed to end in *more*.
+
+**Alternatives considered.** (a) Build the full swarm as originally planned; (b) fix the fallback defect first, then sweep agent counts against the deterministic ceiling; (c) abandon the agent layer.
+
+**Reason.** P7 measured the agent layer as a **net negative**: 0.75 with live agents versus **0.95** for the deterministic exhaustive sweep, on the identical incident set and grader. Adding twelve more agents on top of a layer that is losing 0.20 would be building on a measured deficit, and any resulting number would be uninterpretable — we would not know whether a change came from more agents or from the unfixed defect underneath.
+
+The defect is specific and understood: agents propose 1–2 hypotheses; when they miss, no candidate clears the effect threshold and the pipeline abstains. Fixing that is ~20 lines. (c) is premature — the agents have not been measured *after* the fix.
+
+This is a scope change, recorded here per the anti-drift rule rather than made silently. **The objective, evaluation methodology, and primary metric are unchanged**; only the order and the presumed conclusion of P8 move. D-008 already committed to agent count being an experimental result rather than a design input — this is that commitment being honoured when the data turned out inconvenient.
+
+**Consequences.** P8 leads with the fallback fix and publishes before/after. The sweep then measures configurations against a **known ceiling of 0.95**, so "does this help?" has a concrete referent. If no configuration beats the ceiling, the honest product ships the deterministic engine with agents as an optional layer, and that is reported as the finding.
+
+**Reversible?** Yes — the full swarm can still be built if the measurements justify it.

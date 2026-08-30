@@ -1,23 +1,23 @@
 {
   "aftermath": {
     "completion_tokens": 0,
-    "exact": 18,
+    "exact": 15,
     "incidents": 20,
-    "latency_seconds": 185.9854874610901,
+    "latency_seconds": 1761.8350970745087,
     "near_miss": 0,
-    "no_answer": 1,
+    "no_answer": 4,
     "prompt_tokens": 0,
     "system": "aftermath",
     "wrong": 1
   },
-  "aftermath_in_causal_set_rate": 0.9,
-  "aftermath_localization_rate": 0.9,
-  "artifact_hash": "sha256:5b8a57c1c10d5f28e1900af34a183034a6abd4fe27e7e42e188f56915fedf35f",
+  "aftermath_in_causal_set_rate": 0.75,
+  "aftermath_localization_rate": 0.75,
+  "artifact_hash": "sha256:d04602b2cb25fa7e176dc7ac0d6ebaefa080e404b1687fa490815a6cf9155d93",
   "baseline": {
     "completion_tokens": 4165,
     "exact": 18,
     "incidents": 20,
-    "latency_seconds": 0.014657974243164062,
+    "latency_seconds": 202.30040526390076,
     "near_miss": 0,
     "no_answer": 0,
     "prompt_tokens": 34381,
@@ -26,7 +26,7 @@
   },
   "baseline_in_causal_set_rate": 0.9,
   "baseline_localization_rate": 0.9,
-  "delta": 0.0,
+  "delta": -0.15000000000000002,
   "incident_ids": [
     "I-001",
     "I-002",
@@ -173,8 +173,8 @@
       "true_causal_step": "s0019"
     },
     {
-      "aftermath": "exact",
-      "aftermath_answer": "s0009",
+      "aftermath": "no_answer",
+      "aftermath_answer": null,
       "baseline": "exact",
       "baseline_answer": "s0009",
       "causal_set": [
@@ -195,8 +195,8 @@
       "true_causal_step": "s0009"
     },
     {
-      "aftermath": "exact",
-      "aftermath_answer": "s0009",
+      "aftermath": "no_answer",
+      "aftermath_answer": null,
       "baseline": "exact",
       "baseline_answer": "s0009",
       "causal_set": [
@@ -263,8 +263,8 @@
       "true_causal_step": "s0009"
     },
     {
-      "aftermath": "exact",
-      "aftermath_answer": "s0009",
+      "aftermath": "no_answer",
+      "aftermath_answer": null,
       "baseline": "exact",
       "baseline_answer": "s0009",
       "causal_set": [
@@ -274,5 +274,5 @@
       "true_causal_step": "s0009"
     }
   ],
-  "verdict": "TIED"
+  "verdict": "BASELINE ahead"
 }
