@@ -62,7 +62,10 @@ Begin **P9 — Frontend**: Incident Lab, Evidence Board, Replay Lab, Repair Tour
 
 ## Blocked tasks
 
-- **Gemini API key** — not yet configured. Not blocking: P3–P4 run entirely on the deterministic mock provider. A key in `.env` is needed before P5 runs the forensic pipeline against a real model.
+**Nothing is blocked.**
+
+- **Gemini API key** — ✅ configured in `.env` (gitignored, mode 600) since P7. Used for every live run: the P5 pipeline, the P7 benchmark, and the P8.2 sweep (~500 calls total). The default test suite never touches it — an autouse fixture isolates tests from `.env` (D-013), so `pytest` behaves identically with or without a key present.
+- **Reproducing published results needs no key.** Committed cassettes replay the benchmark offline to the same artifact hash, asserted by test.
 
 ## Next tasks (in order)
 
