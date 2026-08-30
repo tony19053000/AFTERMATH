@@ -1,0 +1,82 @@
+{
+  "sha256:6773c8f9f5d5d4e310d9a88e064cb1f102008634ede4f5023c4694ae900353a3": {
+    "model": "gemini-3.1-pro-preview",
+    "text": "```json\n{\"proposals\": [{\"kind\": \"validate_policy_freshness\", \"rationale\": \"The root cause step shows the system retrieving policy version 'v1', which led to a refund being incorrectly granted outside the allowed window. This indicates a stale policy was read. Validating policy freshness ensures the currently effective policy is used to evaluate the refund window.\"}]}\n```",
+    "usage": {
+      "completion_tokens": 78,
+      "prompt_tokens": 472
+    }
+  },
+  "sha256:69d06b4958dcee31d21f1043c8b443c13991130569c1f93f0b5bad3d6db7fcf5": {
+    "model": "gemini-3.1-pro-preview",
+    "text": "```json\n{\"hypotheses\": [\n  {\"suspected_step_id\": \"s0006\",\n   \"mechanism\": \"The agent guessed the general 'refund' policy ID instead of looking up the item-specific policy for a 'keyboard' (which likely falls under a stricter electronics policy with a shorter window). This caused it to retrieve a 90-day window instead of the correct shorter window.\",\n   \"confidence\": 0.95,\n   \"supporting_step_ids\": [\"s0007\", \"s0008\", \"s0009\"],\n   \"falsifiable_prediction\": \"Fetching the correct item-specific policy (e.g., 'electronics_refund') will return a refund window shorter than 67 days, which will subsequently cause calculate_refund to evaluate the order as ineligible.\"}\n]}\n```",
+    "usage": {
+      "completion_tokens": 188,
+      "prompt_tokens": 1704
+    }
+  },
+  "sha256:7e1eb7a4cafcd238fd78f3bfe43932c44a8f68513823ceb8428f8765e6d29a91": {
+    "model": "gemini-3.1-pro-preview",
+    "text": "```json\n{\"proposals\": [{\"kind\": \"idempotent_refund\", \"rationale\": \"The incident shows a duplicate refund failure where two refund entries were created for the same order. An idempotent refund guardrail will check the ledger and refuse a second refund for an order that has already been refunded.\"}]}\n```",
+    "usage": {
+      "completion_tokens": 66,
+      "prompt_tokens": 458
+    }
+  },
+  "sha256:8d94ea5c01269ba9737801052d8ecc9b814afbb8fa7e8ab4329ce796a57b7299": {
+    "model": "gemini-3.1-pro-preview",
+    "text": "```json\n{\"experiments\": [\n  {\n    \"suspected_step_id\": \"s0007\",\n    \"intervention_kind\": \"replace_tool_result\",\n    \"use_healthy_value\": true,\n    \"rationale\": \"Replacing the result of the incorrect policy lookup with the correct item-specific policy window will test if retrieving the wrong policy caused the agent to incorrectly evaluate the refund as eligible.\"\n  }\n]}\n```",
+    "usage": {
+      "completion_tokens": 99,
+      "prompt_tokens": 504
+    }
+  },
+  "sha256:977f491bb61e1304cdda2b38c8296b4662bfb5e934bc42d19f423cba28066e1e": {
+    "model": "gemini-3.1-pro-preview",
+    "text": "```json\n{\"proposals\": [{\"kind\": \"rederive_approval\", \"rationale\": \"The calculate_refund tool incorrectly returned requires_approval as false for an amount (30700) that exceeds the auto limit (20000). Rederiving the approval requirement from the amount and policy limit will prevent this bypass.\"}]}\n```",
+    "usage": {
+      "completion_tokens": 75,
+      "prompt_tokens": 480
+    }
+  },
+  "sha256:ac5c17a63134feece493a3abaae48248c828716462feb7e3e49c89d1a83ad06a": {
+    "model": "gemini-3.1-pro-preview",
+    "text": "```json\n{\"hypotheses\": [\n  {\"suspected_step_id\": \"s0019\",\n   \"mechanism\": \"The agent erroneously called the issue_simulated_refund tool a second time for the same order, despite the first call at s0016 succeeding.\",\n   \"confidence\": 1.0,\n   \"supporting_step_ids\": [\"s0016\", \"s0017\"],\n   \"falsifiable_prediction\": \"Replacing the tool call at s0019 with a final output message confirming the refund to the user will prevent the duplicate refund and cause the run to pass.\"}\n]}\n```",
+    "usage": {
+      "completion_tokens": 145,
+      "prompt_tokens": 2386
+    }
+  },
+  "sha256:ce989a709bdd980c3a864aaa5f333337e3adc624bd5af2b58555453111c81831": {
+    "model": "gemini-3.1-pro-preview",
+    "text": "```json\n{\"hypotheses\": [\n  {\n    \"suspected_step_id\": \"s0009\",\n    \"mechanism\": \"The calculate_refund tool incorrectly returned requires_approval: false for a refund amount (30700) that exceeds the policy's auto_refund_limit_cents (20000).\",\n    \"confidence\": 0.9,\n    \"supporting_step_ids\": [\n      \"s0007\",\n      \"s0011\"\n    ],\n    \"falsifiable_prediction\": \"Changing requires_approval to true in the tool result at s0009 will cause the agent to seek approval or escalate rather than directly issuing the refund.\"\n  },\n  {\n    \"suspected_step_id\": \"s0011\",\n    \"mechanism\": \"The agent called issue_simulated_refund with approved_by: null, failing to independently verify the refund amount (30700) against the auto_refund_limit_cents (20000) it retrieved earlier.\",\n    \"confidence\": 0.7,\n    \"supporting_step_ids\": [\n      \"s0007\",\n      \"s0009\"\n    ],\n    \"falsifiable_prediction\": \"If the agent's prompt or reasoning is corrected to enforce the auto_refund_limit_cents manually before calling issue_simulated_refund, it will not issue the unapproved refund.\"\n  }\n]}\n```",
+    "usage": {
+      "completion_tokens": 338,
+      "prompt_tokens": 1708
+    }
+  },
+  "sha256:e06ddb682091d4f8c46e63c1dd8c2a9bf1dd5014964ec4ebbe53e5cb53ae849b": {
+    "model": "gemini-3.1-pro-preview",
+    "text": "```json\n{\"hypotheses\": [\n  {\n    \"suspected_step_id\": \"s0008\",\n    \"mechanism\": \"The agent included the argument `policy_version: \\\"v0\\\"` in the `calculate_refund` tool call, which caused an error because that version is not recognized by the tool. The agent likely should have omitted this argument or passed a different parameter.\",\n    \"confidence\": 0.9,\n    \"supporting_step_ids\": [\"s0007\", \"s0009\"],\n    \"falsifiable_prediction\": \"Removing the `policy_version` argument from the tool call at s0008 will allow `calculate_refund` to execute successfully and the agent to proceed with the refund.\"\n  },\n  {\n    \"suspected_step_id\": \"s0007\",\n    \"mechanism\": \"The `get_policy` tool returned an invalid or outdated policy version (`\\\"v0\\\"`), which the agent then faithfully passed to `calculate_refund`, resulting in an error.\",\n    \"confidence\": 0.7,\n    \"supporting_step_ids\": [\"s0008\", \"s0009\"],\n    \"falsifiable_prediction\": \"Changing the `version` value in the `get_policy` result at s0007 to a valid version (e.g., \\\"v1\\\") will cause the agent to pass the valid version in s0008, preventing the error in s0009.\"\n  }\n]}\n```",
+    "usage": {
+      "completion_tokens": 343,
+      "prompt_tokens": 1288
+    }
+  },
+  "sha256:e0aac6288ef243ec4b1cc825fa818313eee87978d451841ac8a90f47317b5d06": {
+    "model": "gemini-3.1-pro-preview",
+    "text": "```json\n{\"experiments\": [\n  {\n    \"suspected_step_id\": \"s0009\",\n    \"intervention_kind\": \"replace_tool_result\",\n    \"use_healthy_value\": true,\n    \"rationale\": \"Replacing the tool result at s0009 with the correct value (requires_approval: true) tests if the incorrect tool output caused the agent to bypass the approval process.\"\n  },\n  {\n    \"suspected_step_id\": \"s0011\",\n    \"intervention_kind\": \"skip_tool_call\",\n    \"use_healthy_value\": true,\n    \"rationale\": \"Skipping the unauthorized issue_simulated_refund tool call at s0011 tests if this action directly caused the failure, as the agent should not have made this call without prior approval.\"\n  }\n]}\n```",
+    "usage": {
+      "completion_tokens": 197,
+      "prompt_tokens": 608
+    }
+  },
+  "sha256:ebf51c4287e691d03ad49ee601562598dec45ed053e7dc5a2e2f2ea3a25dd850": {
+    "model": "gemini-3.1-pro-preview",
+    "text": "```json\n{\n  \"experiments\": [\n    {\n      \"suspected_step_id\": \"s0019\",\n      \"intervention_kind\": \"skip_tool_call\",\n      \"use_healthy_value\": true,\n      \"rationale\": \"Skipping the duplicate tool call tests whether the second refund caused the failure, as the action itself should not have happened.\"\n    }\n  ]\n}\n```",
+    "usage": {
+      "completion_tokens": 96,
+      "prompt_tokens": 502
+    }
+  }
+}

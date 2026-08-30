@@ -215,12 +215,19 @@ class TestRepairIsMeasuredNotArgued:
     ) -> None:
         """The guard library has nothing for corrupted refund arithmetic.
 
-        I-007 localizes correctly, but no guardrail in the library prevents it,
-        so the best candidate scores prevention 0.00 and is NOT accepted.
+        I-009 localizes correctly, but its fault corrupts *eligibility* rather
+        than an amount, and no guardrail in the library re-derives eligibility.
+        The best candidate scores prevention 0.00 and is NOT accepted.
         Reporting an ineffective guard as a fix would be worse than reporting
         none — this is measured coverage, not an assumed one.
+
+        (P8.3 added `bound_refund_to_order_total`, which covered the
+        amount-corruption class and moved I-007 out of this category. A
+        `rederive_eligibility` guard would likely cover this one too; it was not
+        added, because adding guards one at a time until the benchmark is fully
+        covered is fitting the library to the test set — D-019.)
         """
-        report = deterministic_reports["I-007"]
+        report = deterministic_reports["I-009"]
 
         assert report.root_cause_step is not None
         assert report.repair is not None

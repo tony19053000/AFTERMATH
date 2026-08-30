@@ -5,7 +5,7 @@
 
 ---
 
-# Overall Completion: 81%
+# Overall Completion: 85%
 
 **Derivation.** Completion is the weighted sum of phase completion from `docs/PHASES.md`. It is never estimated by feel.
 
@@ -19,11 +19,11 @@
 | P5 Minimal forensic pipeline (MVP) | 14 | 100% | 14.0 |
 | P6 Immunity Vault | 8 | 100% | 8.0 |
 | P7 Baseline & benchmark | 10 | 100% | 10.0 |
-| P8 Swarm expansion & agent-count study | 10 | 30% | 3.0 |
+| P8 Swarm expansion & agent-count study | 10 | 70% | 7.0 |
 | P9 Frontend | 8 | 0% | 0.0 |
 | P10 Hardening & demo | 4 | 0% | 0.0 |
 | P11 TEE vault *(optional, unweighted)* | 0 | 0% | 0.0 |
-| **Total** | **100** | | **81.0** |
+| **Total** | **100** | | **85.0** |
 
 Within a phase, % done = satisfied acceptance criteria ÷ total acceptance criteria for that phase.
 
@@ -31,15 +31,17 @@ Within a phase, % done = satisfied acceptance criteria ÷ total acceptance crite
 
 ## Current phase
 
-**P8 — Swarm expansion & agent-count study.** In progress (P8.1 done).
+**P8 — Swarm expansion & agent-count study.** In progress (P8.1, P8.3 done; P8.2 sweep running).
 
 **P8.1 result: the sweep fallback lifted AFTERMATH 0.75 → 0.90, now TIED with the baseline.** Measured against the P7 cassette so agent answers were identical and the change is attributable to the orchestration alone. The agent pipeline still does not beat the deterministic sweep (0.95).
 
 **⚠ THE BASELINE WON: 0.90 vs 0.75 on the primary metric.** Published as measured (D-007). The informative part: AFTERMATH's *deterministic* configuration scores **0.95**, beating the baseline. The replay machinery works; the LLM agent layer is a net negative because it narrows the hypothesis set below what the evidence engine needs.
 
+**P8.3 result: repair coverage 10/20 → 16/20**, and the immunity suite caught a **guard interaction that was less safe than either guard alone** — `rederive_approval` deciding on an amount `bound_refund_to_order_total` was about to correct, issuing an unapproved over-limit refund. Fixed by making guard precedence explicit.
+
 ## Current objective
 
-**P8.2** — the agent-count sweep (1/3/5 investigators) against the known 0.95 deterministic ceiling, measuring accuracy, latency, and token cost. The question is whether *any* agent configuration earns its cost, and a null result is a publishable finding (D-008, D-020).
+**P8.2** — the agent-count sweep (1/3/5 investigators), measuring hypothesis recall against token cost. Since P8.1's fallback floors localization at the deterministic sweep, recall is the metric that isolates what investigators actually contribute. A null result is a publishable finding (D-008, D-020).
 
 ## Completed phases
 
@@ -64,13 +66,13 @@ Within a phase, % done = satisfied acceptance criteria ÷ total acceptance crite
 
 1. ~~**P8.1** — sweep fallback.~~ Done: 0.75 → 0.90, before/after published.
 2. **P8.2** — investigator-count sweep (1/3/5/7) against the 0.95 deterministic ceiling, measuring accuracy, latency, and token cost.
-3. **P8.3** — add `bound_refund_to_order_total` to the guard library (deferred in P7 by D-019) and publish repair coverage before and after.
+3. ~~**P8.3** — add `bound_refund_to_order_total`.~~ Done: 10/20 → 16/20, before/after published; found and fixed a guard-ordering safety bug.
 4. **P8.4** — repair tournament with genuinely distinct strategies.
 5. **P8.5** — decide the production configuration on measurement; report a null result as a result.
 
 ## Failing tests
 
-None. **819 passed** offline (`pytest backend/tests -q`, ~5.2s), plus 5 opt-in `live` tests.
+None. **830 passed** offline (`pytest backend/tests -q`, ~5.2s), plus 5 opt-in `live` tests.
 
 ## Known bugs
 
@@ -81,7 +83,8 @@ None known.
 - `benchmark/` is still an empty package stub.
 - **The agent layer no longer subtracts, but still does not add.** P8.1 lifted it 0.75 → 0.90 (tied with the baseline), yet AFTERMATH's deterministic sweep alone still scores 0.95. The residual gap is one step-labelling case (I-010).
 - **All wrong answers across both systems are call-step vs result-step of the same call.** A labelling ambiguity, not a different diagnosis. Strict convention retained; the lenient alternative helps the baseline more (1.00 vs 0.80), and both numbers are published.
-- **The immunity suite has 10 cases, not 20.** Only 10 incidents have an accepted repair; the rest are amount-corruption faults the guard library does not cover (prevention 0.00, correctly unaccepted). A `bound_refund_to_order_total` guard would likely fix them — **deliberately not added in P7**, because choosing a guardrail after seeing which incidents lack one is fitting the library to the benchmark. P8 item.
+- **The immunity suite has 16 cases, not 20.** Four incidents have no acceptable repair: I-005 (no localizable cause) and I-009/I-014/I-020, which corrupt *eligibility* rather than an amount. A `rederive_eligibility` guard would likely cover the latter three — **deliberately not added**, since adding guards until the benchmark is fully covered is the fitting D-019 prevents.
+- **Guard ordering is safety-critical.** Value-correcting guards must precede decision-deriving ones; `GuardChain` enforces this on construction. Found by the suite, not by inspection.
 - **I-005 is not localizable and reports no cause.** Correcting the policy read swaps one failure for another (the agent then under-refunds). This corrects P5's reported 5/5 to 19/20 — the earlier success was an artifact of a narrow oracle. The import-boundary guard is load-bearing for `replay/` and now also covers the deterministic chain and repair modules.
 - **Repairs are selected from a fixed guard library, not synthesized.** The agent chooses a kind; Python applies and measures it. Keeps repairs executable, but narrows what "the agent proposes a repair" means.
 - **I-005 has no acceptable repair in the library.** A freshness check cannot fix a world that genuinely lacks the newer policy. Reported honestly (`repair_accepted: false`) rather than promoting the blocker.

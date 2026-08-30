@@ -28,6 +28,7 @@ from aftermath.forensics.agents import (
     Investigator,
     RepairAgent,
     Verifier,
+    lenses_for,
 )
 from aftermath.forensics.parsing import AgentOutputError
 from aftermath.llm.base import LLMError
@@ -107,9 +108,17 @@ class ForensicOrchestrator:
         *,
         trials: int = 5,
         engine: ReplayEngine | None = None,
+        investigators: int = 1,
+        run_verifier: bool = True,
     ) -> None:
         self._provider = provider
         self._trials = trials
+        # Number of investigator agents, each with a distinct lens. D-008: this
+        # is configuration, never hard-coded, so agent count can be swept.
+        self._investigators = investigators
+        # The verifier does not affect localization. It can be switched off for
+        # a sweep so the measurement is not paying for a stage it is not testing.
+        self._run_verifier = run_verifier
         self._engine = engine or ReplayEngine()
         self._runner = ExperimentRunner(self._engine)
 
@@ -119,18 +128,26 @@ class ForensicOrchestrator:
         self, trace: Trace, errors: list[str]
     ) -> tuple[list[Hypothesis], HypothesisSource]:
         if self._provider is not None:
-            try:
-                output = Investigator(self._provider).investigate(redact_for_agent(trace))
-                valid = [
-                    h
-                    for h in output.hypotheses
-                    if h.suspected_step_id in {s.step_id for s in trace.steps}
-                ]
-                if valid:
-                    return valid, HypothesisSource.AGENT
-                errors.append("investigator: no hypothesis named a real step")
-            except (AgentOutputError, LLMError) as exc:
-                errors.append(f"investigator: {exc}")
+            redacted = redact_for_agent(trace)
+            real_steps = {s.step_id for s in trace.steps}
+            # Union across investigators, deduped by step. Distinct lenses are
+            # expected to overlap; the union is what the evidence engine tests.
+            merged: dict[str, Hypothesis] = {}
+            for lens in lenses_for(self._investigators):
+                try:
+                    output = Investigator(self._provider, lens=lens).investigate(redacted)
+                except (AgentOutputError, LLMError) as exc:
+                    errors.append(f"investigator[{lens or 'general'}]: {exc}")
+                    continue
+                for hypothesis in output.hypotheses:
+                    if hypothesis.suspected_step_id not in real_steps:
+                        continue
+                    existing = merged.get(hypothesis.suspected_step_id)
+                    if existing is None or hypothesis.confidence > existing.confidence:
+                        merged[hypothesis.suspected_step_id] = hypothesis
+            if merged:
+                return list(merged.values()), HypothesisSource.AGENT
+            errors.append("investigator: no hypothesis named a real step")
 
         return self._exhaustive_candidates(trace), HypothesisSource.EXHAUSTIVE_FALLBACK
 
@@ -352,7 +369,7 @@ class ForensicOrchestrator:
         return best, alternatives
 
     def _verify(self, ranked, repair, resolution, errors) -> dict[str, Any] | None:
-        if self._provider is None:
+        if self._provider is None or not self._run_verifier:
             return None
         try:
             return (

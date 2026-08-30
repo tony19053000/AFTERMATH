@@ -397,3 +397,80 @@ class TestSweepFallback:
         report = ForensicOrchestrator(scripted, trials=2).investigate(INCIDENTS["I-001"])
 
         assert report.hypothesis_source is HypothesisSource.AGENT
+
+
+class TestAgentCountSweep:
+    """P8.2 harness. D-008: agent count is a result, not a design input."""
+
+    def test_lens_selection_is_stable_and_prefix_ordered(self) -> None:
+        """N investigators must mean the same first N lenses, every run."""
+        from aftermath.forensics.agents import lenses_for
+
+        assert lenses_for(1) == (None,)
+        assert lenses_for(3) == lenses_for(5)[:3]
+
+    def test_one_investigator_is_the_existing_unlensed_system(self) -> None:
+        """The N=1 arm must be the system already measured, not a new variant."""
+        from aftermath.forensics.agents import lenses_for
+
+        assert lenses_for(1) == (None,)
+
+    def test_too_many_investigators_raises(self) -> None:
+        from aftermath.forensics.agents import lenses_for
+
+        with pytest.raises(ValueError, match="only 5 lenses"):
+            lenses_for(99)
+
+    def test_every_lens_prompt_exists_and_is_distinct(self) -> None:
+        from aftermath.forensics.agents import LENS_ORDER, load_lens
+
+        texts = {name: load_lens(name) for name in LENS_ORDER}
+
+        assert len(set(texts.values())) == len(LENS_ORDER), "lenses must differ"
+        for text in texts.values():
+            assert text.startswith("LENS:")
+
+    def test_investigator_count_is_configuration_not_hard_coded(self) -> None:
+        from aftermath.forensics.orchestrator import ForensicOrchestrator
+
+        assert "investigators" in inspect.signature(ForensicOrchestrator.__init__).parameters
+
+    def test_hypotheses_are_unioned_and_deduped_across_lenses(self) -> None:
+        """Distinct lenses overlap; the union is what the engine tests."""
+        from aftermath.forensics.orchestrator import ForensicOrchestrator, HypothesisSource
+        from aftermath.llm.mock import MockProvider
+
+        truth = truth_of("I-001")
+        scripted = MockProvider()
+        for lens in ("tool_api", "context_memory", "state_systems"):
+            scripted.script(
+                f"forensics:investigator:{lens}",
+                json.dumps({"hypotheses": [{"suspected_step_id": truth, "mechanism": lens}]}),
+            )
+
+        report = ForensicOrchestrator(
+            scripted, trials=2, investigators=3, run_verifier=False
+        ).investigate(INCIDENTS["I-001"])
+
+        assert report.hypothesis_source is HypothesisSource.AGENT
+        # Three agents, one shared answer -> one hypothesis, not three.
+        assert [h.suspected_step_id for h in report.hypotheses] == [truth]
+
+    def test_marginal_gain_exposes_cost_without_benefit(self) -> None:
+        """The comparison the sweep exists to make."""
+        from aftermath.benchmark.sweep import ArmResult, SweepReport
+
+        report = SweepReport(
+            arms=[
+                ArmResult(investigators=1, incidents=10, recall_hits=8, localized=9,
+                          fallbacks=2, prompt_tokens=1000, completion_tokens=200),
+                ArmResult(investigators=3, incidents=10, recall_hits=8, localized=9,
+                          fallbacks=2, prompt_tokens=3000, completion_tokens=600),
+            ],
+            incident_ids=tuple(f"I-{i:03d}" for i in range(10)),
+        )
+
+        gain = report.marginal_gain()[0]
+
+        assert gain["recall_delta"] == 0.0
+        assert gain["token_multiple"] == 3.0

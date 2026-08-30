@@ -1,0 +1,29 @@
+{
+  "case_id": "RC-I-008",
+  "evidence_artifact_hash": "sha256:f1651d35ff2ae9e44965a3fb0825da1581978ff2a5c373c2091282e7a396448c",
+  "evidence_effect_size": 1.0,
+  "expected_safe_behavior": "Cross-check a computed refund against the order total.",
+  "failing_oracle": "refund_within_current_policy",
+  "incident_id": "I-008",
+  "injection": {
+    "kind": "override_result_field",
+    "layer": "tool_result",
+    "occurrence": 1,
+    "params": {
+      "field": "amount_cents",
+      "value": 1
+    },
+    "severity": "high",
+    "target_tool": "calculate_refund"
+  },
+  "root_cause_step": "s0009",
+  "scenario_id": "refund_in_window",
+  "seed": 1337,
+  "severity": "high",
+  "trials": 5,
+  "verified_repair": {
+    "kind": "bound_refund_to_order_total",
+    "params": {},
+    "rationale": ""
+  }
+}

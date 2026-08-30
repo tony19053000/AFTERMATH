@@ -349,6 +349,46 @@ Published together, because they disagree about who is ahead. The strict convent
 
 ---
 
+## 2026-08-30 — P8.3: repair coverage 10/20 → 16/20, and a guard interaction that was **less safe than either guard alone**
+
+**WHAT WE TRIED.** Added `bound_refund_to_order_total` — the guard D-019 deferred — which re-derives a refund amount from the order and effective policy instead of trusting the computed figure.
+
+**Before/after, as D-019 required:**
+
+| | accepted repairs |
+|---|---:|
+| before | 10/20 |
+| after | **16/20** |
+
+Six newly covered (I-007, I-008, I-012, I-013, I-018, I-019), **zero regressions**, and the guard's false-block rate on normal cases is 0.00.
+
+**Four remain uncovered**, and they are not being chased: I-005 has no localizable cause at all; I-009, I-014 and I-020 corrupt *eligibility* rather than an amount, which no guard in the library re-derives. A `rederive_eligibility` guard would likely close them — **not added**, because adding guards one at a time until the benchmark is fully covered is exactly the fitting D-019 exists to prevent. The gap is named instead.
+
+### The finding that matters
+
+With **all four guardrails applied together, 2 of 16 cases regressed** — even though every case passes with its own repair alone and every case had passed its two-direction controls.
+
+The mechanism, isolated by measurement:
+
+```
+rederive_approval  THEN  bound_refund_to_order_total   ->  UNSAFE
+bound_refund_to_order_total  THEN  rederive_approval   ->  safe
+```
+
+`rederive_approval` computes the approval requirement from a **truncated** refund amount; `bound_refund_to_order_total` then corrects the amount upward. The approval decision was taken on data a later guard was about to change, so an over-limit refund was issued **with no approver recorded** — strictly worse than the bug either guard fixes.
+
+No *pair* of guards revealed it. Only the full set did.
+
+**Fix.** Guard precedence is now a property of the system: values are corrected first, decisions are derived from corrected values second, actions and refusals last. `GuardChain` reorders on construction, so a caller cannot assemble an unsafe chain by passing guards in the wrong sequence. Release gate: **0/16 unrepaired → 16/16 with all guardrails**.
+
+**Why this is the most valuable result of P8 so far.** It is precisely what the Immunity Vault was built for and could not have been found by reading the code: two individually-correct, individually-verified repairs combined into a *safety regression*. Every guardrail was also confirmed load-bearing — dropping any one of the four causes 2–7 case regressions.
+
+**RESULT / EVIDENCE.** 16 regression cases committed. `pytest` → **830 passed**.
+
+**DECISION: KEEP.**
+
+---
+
 ## Experiment log
 
 *(Empty. First entries expected in P4 — replay determinism findings — and P7 — baseline comparison.)*

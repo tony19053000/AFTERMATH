@@ -42,9 +42,44 @@ class RepairKind(StrEnum):
     VALIDATE_POLICY_FRESHNESS = "validate_policy_freshness"
     VALIDATE_POLICY_RESOLVES = "validate_policy_resolves"
     REDERIVE_APPROVAL = "rederive_approval"
+    # Added in P8.3, deferred from P7 by D-019: choosing a guard after seeing
+    # which incidents lack one is fitting the library to the benchmark, so the
+    # before/after coverage is published rather than only the after.
+    BOUND_REFUND_TO_ORDER_TOTAL = "bound_refund_to_order_total"
     # Deliberately included so the tournament has a plausible-looking bad option:
     # it prevents everything by refusing every refund.
     BLOCK_ALL_REFUNDS = "block_all_refunds"
+
+
+# Guard precedence. Guards that CORRECT A VALUE must run before guards that
+# DERIVE A DECISION from values, or the decision is taken on data a later guard
+# is about to change.
+#
+# Found by the immunity suite, not by inspection: `rederive_approval` followed by
+# `bound_refund_to_order_total` computed the approval requirement from a
+# truncated amount, then corrected the amount upward — issuing an over-limit
+# refund with no approver. That is *worse* than the bug either guard fixes.
+# Each guard passed its own controls; only running them together revealed it.
+GUARD_PRECEDENCE: dict[str, int] = {
+    # 1. Correct the values.
+    "validate_policy_freshness": 10,
+    "validate_policy_resolves": 11,
+    "bound_refund_to_order_total": 12,
+    # 2. Then derive decisions from the corrected values.
+    "rederive_approval": 20,
+    # 3. Then act, or refuse to.
+    "idempotent_refund": 30,
+    "block_all_refunds": 40,
+}
+
+
+def order_guards(specs: tuple["RepairSpec", ...]) -> tuple["RepairSpec", ...]:
+    """Sort guards into a safe application order.
+
+    Stable within a precedence tier, so guards of equal rank keep their given
+    order and the result stays reproducible.
+    """
+    return tuple(sorted(specs, key=lambda s: GUARD_PRECEDENCE.get(s.kind.value, 99)))
 
 
 class RepairSpec(BaseModel):
@@ -129,6 +164,25 @@ class RepairGuard:
                         ).model_dump(mode="json")
                     )
 
+            case RepairKind.BOUND_REFUND_TO_ORDER_TOTAL if tool == "calculate_refund":
+                # A computed refund must equal what the order and the effective
+                # policy actually entitle. Re-derives the amount from the order
+                # rather than trusting the arithmetic handed back, which catches
+                # both inflated and truncated amounts.
+                order_id = arguments.get("order_id")
+                order = world.orders.get(order_id)
+                if order is None:
+                    return faulted
+                entitled = order.amount_cents - world.total_refunded(order_id)
+                eligible = bool(faulted.result.get("eligible"))
+                expected = max(0, entitled) if eligible else 0
+                if faulted.result.get("amount_cents") != expected:
+                    self.triggered += 1
+                    return ToolOutcome(
+                        result={**faulted.result, "amount_cents": expected},
+                        mutations=faulted.mutations,
+                    )
+
             case RepairKind.REDERIVE_APPROVAL if tool == "calculate_refund":
                 # Never trust an upstream flag for a safety decision: recompute it.
                 version = faulted.result.get("policy_version")
@@ -158,10 +212,12 @@ class GuardChain:
     """
 
     def __init__(self, specs: tuple[RepairSpec, ...], fault: Injector | NullInjector | None = None):
-        self.specs = specs
+        # Ordered on construction: a caller must not be able to assemble an
+        # unsafe chain by passing guards in the wrong sequence.
+        self.specs = order_guards(specs)
         self._fault = fault or NullInjector()
         # Only the first guard carries the fault; the rest layer on top of it.
-        self._guards = [RepairGuard(spec) for spec in specs]
+        self._guards = [RepairGuard(spec) for spec in self.specs]
 
     @property
     def triggered(self) -> int:

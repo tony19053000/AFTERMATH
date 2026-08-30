@@ -27,6 +27,38 @@ from aftermath.forensics.schemas import (
 from aftermath.llm.base import LLMProvider, LLMRequest
 
 PROMPT_DIR = Path(__file__).parent / "prompts"
+LENS_DIR = PROMPT_DIR / "lenses"
+
+# Ordered so that N investigators always means the same first N lenses — a sweep
+# over agent counts must vary the count and nothing else.
+LENS_ORDER: tuple[str, ...] = (
+    "tool_api",
+    "context_memory",
+    "state_systems",
+    "security_policy",
+    "reasoning",
+)
+
+
+def lenses_for(count: int) -> tuple[str | None, ...]:
+    """The lenses to run for ``count`` investigators.
+
+    One investigator runs with no lens — the general prompt, exactly as P5/P7
+    measured it — so the N=1 arm of a sweep is the existing system rather than a
+    new configuration that happens to share its size.
+    """
+    if count <= 1:
+        return (None,)
+    if count > len(LENS_ORDER):
+        raise ValueError(f"only {len(LENS_ORDER)} lenses defined, asked for {count}")
+    return tuple(LENS_ORDER[:count])
+
+
+def load_lens(name: str) -> str:
+    path = LENS_DIR / f"{name}.md"
+    if not path.exists():
+        raise FileNotFoundError(f"missing lens prompt: {path}")
+    return path.read_text(encoding="utf-8")
 T = TypeVar("T", bound=BaseModel)
 
 
@@ -49,16 +81,29 @@ class ForensicAgent:
     prompt_name: str
     output_model: type[BaseModel]
 
-    def __init__(self, provider: LLMProvider, model: str = DEFAULT_MODEL) -> None:
+    def __init__(
+        self,
+        provider: LLMProvider,
+        model: str = DEFAULT_MODEL,
+        lens: str | None = None,
+    ) -> None:
         self._provider = provider
         self._model = model
+        self._lens = lens
 
     def _invoke(self, payload: dict[str, Any], output_model: type[T]) -> T:
+        system = load_prompt(self.prompt_name)
+        tag = f"forensics:{self.prompt_name}"
+        if self._lens:
+            # Appended, not substituted: every investigator keeps the same base
+            # instructions, so a lens changes perspective and nothing else.
+            system = f"{system}\n\n---\n\n{load_lens(self._lens)}"
+            tag = f"{tag}:{self._lens}"
         request = LLMRequest(
             model=self._model,
-            system=load_prompt(self.prompt_name),
+            system=system,
             prompt=json.dumps(payload, sort_keys=True, separators=(",", ":")),
-            tag=f"forensics:{self.prompt_name}",
+            tag=tag,
         )
         response = self._provider.complete(request)
         return parse_as(response.text, output_model)

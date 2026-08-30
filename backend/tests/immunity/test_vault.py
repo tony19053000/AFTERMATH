@@ -306,3 +306,61 @@ class TestUnrepairableIncidentIsNotForced:
 
         assert evaluation.false_block_rate > 0
         assert not evaluation.acceptable
+
+
+class TestGuardInteraction:
+    """Guards that pass alone can be unsafe together.
+
+    Found by the immunity suite in P8.3, not by inspection: with all guardrails
+    applied, two cases regressed even though each passed with its own repair.
+    """
+
+    def test_ordering_a_value_fix_after_a_decision_is_unsafe(self) -> None:
+        """The concrete failure: approval decided on an amount about to change.
+
+        `rederive_approval` computes the approval requirement from a truncated
+        refund amount; `bound_refund_to_order_total` then corrects the amount
+        upward. Result: an over-limit refund with no approver — worse than the
+        bug either guard fixes.
+        """
+        from aftermath.replay.repair import RepairKind, RepairSpec
+
+        case = next(c for c in ImmunityVault().load_all() if c.case_id == "RC-I-013")
+        bound = RepairSpec(kind=RepairKind.BOUND_REFUND_TO_ORDER_TOTAL)
+        rederive = RepairSpec(kind=RepairKind.REDERIVE_APPROVAL)
+
+        # GuardChain reorders, so build the unsafe sequence explicitly to show
+        # what the precedence rule is protecting against.
+        from aftermath.replay.repair import GUARD_PRECEDENCE
+
+        assert (
+            GUARD_PRECEDENCE["bound_refund_to_order_total"]
+            < GUARD_PRECEDENCE["rederive_approval"]
+        ), "value corrections must precede decisions derived from those values"
+
+        safe = run_case(case, AgentVersion("ordered", (rederive, bound)))
+        assert safe.protected, "the chain must reorder an unsafely-given sequence"
+
+    def test_full_guard_set_protects_every_case(self) -> None:
+        """The release gate that matters: all guards, all cases, together."""
+        vault = ImmunityVault()
+        cases = vault.load_all()
+
+        report = run_suite(cases, AgentVersion("all-guards", vault.repairs_of_record()))
+
+        assert report.verdict == "RELEASE OK", [r.detail for r in report.regressions]
+        assert report.vacuous == []
+
+    def test_precedence_is_total_over_the_library(self) -> None:
+        """Every guard has a rank, or ordering silently falls back to arbitrary."""
+        from aftermath.replay.repair import GUARD_PRECEDENCE, RepairKind
+
+        assert {k.value for k in RepairKind} <= set(GUARD_PRECEDENCE)
+
+    def test_ordering_is_stable_within_a_tier(self) -> None:
+        from aftermath.replay.repair import RepairKind, RepairSpec, order_guards
+
+        a = RepairSpec(kind=RepairKind.VALIDATE_POLICY_FRESHNESS)
+        b = RepairSpec(kind=RepairKind.VALIDATE_POLICY_RESOLVES)
+
+        assert order_guards((a, b)) == (a, b)
