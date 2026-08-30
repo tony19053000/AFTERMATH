@@ -1,6 +1,6 @@
 # AFTERMATH — Testing Strategy
 
-**Status:** live as of P2. 180 tests, fully offline and deterministic.
+**Status:** live as of P4. 329 tests, fully offline and deterministic.
 
 ---
 
@@ -12,7 +12,9 @@ Three principles:
 
 1. **The deterministic core must be provably deterministic.** Same trace, same seed, same result — asserted, not assumed. This is the single most important test class in the project.
 2. **Tests must not depend on a live LLM.** The default suite runs offline against the mock provider or recorded calls. Live-provider tests are marked `@pytest.mark.live` and excluded by default.
-3. **Controls matter as much as cases.** Every claim about causal detection needs a negative control. An engine that reports "yes, causal" for every step is worse than useless, and only a negative control catches it.
+3. **Controls matter as much as cases — and a control must be able to fail.** Every claim about causal detection needs a negative control. An engine that reports "yes, causal" for every step is worse than useless, and only a negative control catches it.
+
+   **A tautological control is worse than none**, because it manufactures confidence. P4 originally substituted each unrelated step with *its own recorded value* and reported "perfect separation" — but substituting a value for itself is a no-op by construction and could never have failed. Replacing with the value from a *healthy* run is a control that can fail, and it immediately revealed that downstream consequences tie with the true cause. When writing a control, first ask what result would falsify it; if nothing would, it is not a control.
 
 **Never weaken, skip, or delete a test to obtain a green run.** A failing test that reflects a real defect is a successful outcome.
 
@@ -33,7 +35,8 @@ Every agent's output validates against its Pydantic schema · malformed model ou
 - **Strict replay is byte-identical.** Replaying an unmodified trace reproduces the original outcome exactly.
 - **Failure-rate stability.** N-trial replay of an incident reproduces its failure rate within documented tolerance.
 - **Positive control.** Intervening at the injector's `true_causal_step` materially reduces the failure rate.
-- **Negative control.** Intervening at an unrelated step does *not* reduce it.
+- **Negative control.** Intervening at a genuinely unrelated step with a *healthy* value does not reduce the failure rate. Substituting a step's own value is a no-op sanity check, not a control.
+- **Chain honesty.** A fault and its downstream consequences tie at maximum effect; tests assert this rather than papering over it (`TestCausalChainLimitations`).
 - **State restoration.** Branching from step *k* restores exactly the world state recorded at *k*.
 - **Purity.** `replay/` performs zero LLM calls — asserted by import inspection.
 
@@ -69,7 +72,7 @@ uv pip install --python .venv/bin/python -e "backend[dev]"
 
 Markers: `slow` · `live` · `replay` · `benchmark` · `security`. `addopts` excludes `live` by default, so the suite never needs a network or a key.
 
-**Current:** 322 passed offline (~1.0s), plus 3 `live` tests that pass against the real provider (~10s) when run deliberately.
+**Current:** 329 passed offline (~2.3s), plus 3 `live` tests that pass against the real provider (~10s) when run deliberately.
 
 **Hermeticity.** An autouse fixture isolates tests from the repository `.env` and from `GEMINI_API_KEY` (D-013). The default run behaves identically whether or not a key is present on the machine — verified both ways. `live`-marked tests opt out and are the only ones permitted to reach a network.
 
@@ -113,7 +116,11 @@ Each phase's acceptance criteria in `docs/PHASES.md` map to named tests. A phase
 | P4 | strict replay byte-identical | `test_clean_run_replays_byte_identically`, `test_incident_replays_byte_identically` |
 | P4 | failure rate reproduced | `test_baseline_failure_rate_matches_the_incident` |
 | P4 | positive control | `test_positive_control_intervening_at_the_true_cause_prevents_failure` |
-| P4 | negative control | `test_negative_control_unrelated_steps_have_no_effect` |
+| P4 | intervention machinery is not corrupting runs | `test_identity_replacement_is_a_no_op` |
+| P4 | causal chains tie (limitation, asserted) | `test_downstream_consequences_tie_with_the_true_cause` |
+| P4 | isolated faults localize uniquely | `test_isolated_faults_localize_uniquely` |
+| P4 | tie-break is a heuristic, not evidence | `test_tie_break_is_earliest_step_and_is_a_heuristic` |
+| P4 | vocabulary bounds what is findable | `test_replace_only_vocabulary_cannot_reach_a_retry_fault` |
 | P4 | localization picks the true cause | `test_localization_picks_the_true_causal_step` |
 | P4 | ranking ignores confidence | `test_ranking_ignores_confidence` |
 | P4 | experiments re-runnable from artifacts | `test_artifact_round_trips_and_is_rerunnable` |

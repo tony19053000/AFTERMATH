@@ -2,7 +2,9 @@
 
 **From Agent Incident to Verified Immunity.**
 
-> **Project status: P4 of 11 complete (46%).** The replay engine works. Byte-identical strict replay is verified, and counterfactual experiments localize the true cause in **5/5 seed incidents** with clean separation (+1.00 effect at the true cause, +0.00 at all 21 unrelated steps tested). 322 tests, all offline.
+> **Project status: P4 of 11 complete (46%).** The replay engine works. Byte-identical strict replay is verified, and counterfactual experiments correctly localize the true cause in **4 of 5 seed incidents**. 329 tests, all offline.
+>
+> Two measured limitations, stated up front: a fault and its downstream consequences **tie** at maximum effect (correcting either prevents the failure), so effect size alone does not uniquely identify a root cause; and one incident is unreachable by value-replacement experiments because its fix is skipping a call, where the engine correctly reports *no cause found* rather than guessing.
 >
 > Not yet built: the forensic agents (P5) — so far the interventions are written by us, not proposed by a model. There is **no baseline comparison yet** (P7), and this README will not carry any number that does not come from a stored experiment artifact.
 
@@ -38,18 +40,18 @@ LLMs hypothesize, design experiments, propose repairs, and critique. Determinist
 
 ### What that looks like
 
-Real output from incident I-001 (stale policy served at step 7), 5 trials each:
+Real output from incident I-001 (a superseded refund policy served at step s0007). Each step is replaced with the value it would carry in a healthy run, 5 trials each:
 
 ```
-Original trajectory                →  5/5 failures
-Correct the value at step s0007    →  0/5 failures     effect +1.00  ← evidence
-Correct the value at step s0003    →  5/5 failures     effect  0.00  ← negative control
-Correct the value at step s0005    →  5/5 failures     effect  0.00  ← negative control
-Correct the value at step s0009    →  5/5 failures     effect  0.00  ← negative control
-Correct the value at step s0012    →  5/5 failures     effect  0.00  ← negative control
+Original trajectory                          →  5/5 failures
+Correct s0007  get_policy                    →  0/5 failures    effect +1.00  ← the injected fault
+Correct s0009  calculate_refund              →  0/5 failures    effect +1.00  ← downstream of it
+Correct s0003  get_order                     →  5/5 failures    effect  0.00
+Correct s0005  get_customer                  →  5/5 failures    effect  0.00
+Correct s0012  issue_simulated_refund        →  5/5 failures    effect  0.00
 ```
 
-That is a measurement, not an opinion. The negative controls are the load-bearing half: an engine that "fixed" everything would look identical on the first line alone and be worthless.
+That is a measurement, not an opinion — and it shows the method's real shape. Three steps are ruled out by evidence. Two tie at the top, because the stale policy **causes** the wrong refund calculation, so correcting either one prevents the failure. **Effect size localizes the causal chain, not the single root cause.** Picking s0007 from that pair currently relies on an earliest-step tie-break, which is a heuristic rather than evidence — and separating cause from consequence is exactly what the forensic agents in P5 have to earn.
 
 ## What AFTERMATH is not
 
@@ -84,7 +86,7 @@ The backend runs fully offline on a deterministic mock provider — no API key n
 uv venv --python 3.12 .venv
 uv pip install --python .venv/bin/python -e "backend[dev]"
 
-.venv/bin/python -m pytest backend/tests -q                 # 322 passed
+.venv/bin/python -m pytest backend/tests -q                 # 329 passed
 .venv/bin/python -m uvicorn aftermath.api.app:app --port 8000
 curl -s localhost:8000/health
 ```

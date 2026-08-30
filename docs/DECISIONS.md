@@ -233,3 +233,21 @@ So (a) is false: temperature 0 is not a determinism guarantee. The record/replay
 **Important caveat, recorded honestly.** In these runs the *outcome* was identical across live executions even though the text was not — but only because this agent's control flow is deterministic Python and narration cannot change a decision (D-003). **That stability is a property of the current simple agent, not of the replay engine.** When the monitored agent becomes model-driven, live divergence will be able to change outcomes, and the failure rate will become a genuine statistic rather than 0.0/1.0. `TrialSummary.distinct_traces` already tracks this so the shift will be visible rather than silent.
 
 **Reversible?** No — this is a measured property of the environment, not a preference.
+
+---
+
+## D-016 · 2026-08-30 · Effect size localizes a causal chain; the tie-break is a heuristic and is labelled as one
+
+**Decision.** When several steps tie at maximum effect, `localize()` returns the **earliest** tied step. This rule is documented, tested, and explicitly labelled a heuristic rather than evidence.
+
+**Alternatives considered.** (a) Return the earliest tied step; (b) return all tied steps and refuse to choose; (c) return the highest-confidence tied step per the proposing agent; (d) claim the tie does not happen.
+
+**Reason.** Found by re-running P4's sweep with a control that could actually fail. Correcting the stale policy at `s0007` prevents the failure — and so does correcting the wrong refund calculation at `s0009`, because the first causes the second. Both score `+1.00`. **Effect size identifies the causal chain, not the unique root cause.**
+
+(c) was rejected outright: ranking by agent confidence is the exact failure mode D-001 exists to prevent, and letting it in through a tie-break would be a back door. (b) is honest but unhelpful — the chain almost always has a first element, and reporting three steps when one is the fix is a worse product. (a) is defensible because causes precede consequences in a trace, and it is correct on every seed incident. (d) is what the first version of the P4 report effectively did.
+
+**Consequences.** The tie-break is not evidence and must never be reported as such. Separating cause from consequence is a **P5 requirement**: an investigator that reasons about data flow, or interventions that isolate a single link in the chain, is what would replace the heuristic with a measurement. `TestCausalChainLimitations` asserts the tie exists, so it cannot silently disappear or silently worsen.
+
+**A second finding, recorded because it generalizes.** The tie was invisible until the negative control was strengthened. The original control substituted each unrelated step with *its own recorded value* — a no-op by construction that could never have failed — and was reported as "perfect separation". `docs/TESTING.md` now carries the rule: **before writing a control, ask what result would falsify it; if nothing would, it is not a control.**
+
+**Reversible?** Yes — the tie-break is one line in `rank_by_effect`, and the goal is to replace it with evidence in P5.

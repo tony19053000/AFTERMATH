@@ -2,14 +2,41 @@
 
 **Purpose:** if the session ends or context resets, this file alone (plus the docs it points to) must be enough to continue accurately. Written for a reader who remembers nothing.
 
-**Last updated:** 2026-08-30 — end of P3.
-**Current phase:** P3 complete → next is **P4 Deterministic replay engine** ⚠ (highest-risk phase).
+**Last updated:** 2026-08-30 — end of P4.
+**Current phase:** P4 complete → next is **P5 Minimal forensic pipeline (the MVP vertical slice)**.
 
 ---
 
 ## What was completed this cycle
 
-**P3 — controlled failures with trustworthy ground truth.**
+**P4 — the replay engine.** The highest-risk phase, and it passed.
+
+- `replay/intervention.py` — `InterventionSpec`: replace a tool result, skip a call, suppress the injected fault. Step ids resolve to `(tool, occurrence)`.
+- `replay/engine.py` — **deterministic re-execution, not playback** (D-014). Playback cannot answer a counterfactual: after an intervention the run must be free to diverge, and that divergence is the measurement.
+- `replay/experiment.py` — N-trial runner, `effect_size = baseline_rate - intervened_rate`, ranking by effect size **only** (confidence is recorded and never consulted).
+- The agent gained a pre-execution `override_call` hook, because post-hoc result rewriting cannot undo an action that already mutated state.
+
+### Two results that matter
+
+**1. Strict replay is byte-identical — via record/replay, not live re-execution.** Measured: running I-001 twice against a live model at `temperature=0.0` was *not* identical (narration diverged). Recording it and replaying from the cassette with no provider at all *was* identical. **Temperature 0 is not a determinism guarantee** (D-015).
+
+**2. Localization is 4/5, not 5/5 — and the correction is instructive.** P4 was first reported as "5/5, perfect separation". That used a **tautological control**: each unrelated step replaced with *its own* value, a no-op that could never fail. Re-run with healthy-run values instead:
+
+| incident | true cause | steps at full effect | localized |
+|---|---|---|---|
+| I-001 | s0007 | s0007, **s0009** (downstream) | ✅ |
+| I-002 | s0019 | *none reachable by replacement* | ❌ None |
+| I-003 | s0009 | s0009 | ✅ |
+| I-004 | s0007 | s0007 | ✅ |
+| I-005 | s0007 | s0007, **s0009** (downstream) | ✅ |
+
+Effect size localizes the **causal chain**, not the unique root cause: correcting the stale policy *or* the wrong calculation it caused both prevent the failure. The earliest-tied-step tie-break is a **heuristic, not evidence** (D-016). I-002 is unreachable by value replacement — its fix is skipping a call — and the engine correctly returned `None` rather than guessing; with `SKIP_TOOL_CALL` it localizes at +1.00.
+
+Both limitations are asserted in `TestCausalChainLimitations` so they cannot silently regress.
+
+---
+
+### Earlier: P3 — controlled failures with trustworthy ground truth
 
 - `injection/spec.py` — `InjectionSpec`: kind, layer, target tool, occurrence. Layers: TOOL_RESULT, WORLD_STATE, RETRY (CONTEXT is taxonomy only — see limitations).
 - `injection/injector.py` — applies the fault and **records the trace step it perturbed**. That recorded id is `true_causal_step`. Zero LLM imports.
@@ -45,7 +72,7 @@ I-001 and I-005 reach the *same* outcome by different mechanisms (corrupt tool v
 
 ## What currently works
 
-- `pytest backend/tests -q` → **260 passed** in ~0.63s, fully offline.
+- `pytest backend/tests -q` → **329 passed** in ~2.3s, fully offline. Plus 3 opt-in `live` tests against the real model.
 - All 5 incidents reproduce their failure at rate 1.00 (measured over 20 trials each).
 - All 5 clean scenarios still PASS with no injection recorded.
 - Identical seed → identical trace content hash **and** identical world state hash, verified across all 5 scenarios.
@@ -66,7 +93,8 @@ All 5 P2 acceptance criteria, each with a named test (mapped in `docs/TESTING.md
 uv venv --python 3.12 .venv                                  # python3 -m venv is broken here
 uv pip install --python .venv/bin/python -e "backend[dev]"
 
-.venv/bin/python -m pytest backend/tests -q                  # 180 passed
+.venv/bin/python -m pytest backend/tests -q                  # 329 passed
+.venv/bin/python -m pytest backend/tests -m live -q          # 3 passed, needs GEMINI_API_KEY
 .venv/bin/python -m uvicorn aftermath.api.app:app --port 8000
 ```
 

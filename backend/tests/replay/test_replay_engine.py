@@ -209,10 +209,17 @@ class TestCausalControls:
         assert result.prevented
 
     @pytest.mark.parametrize("incident_id", INCIDENT_IDS)
-    def test_negative_control_unrelated_steps_have_no_effect(
+    def test_identity_replacement_is_a_no_op(
         self, runner: ExperimentRunner, incident_id: str
     ) -> None:
-        """An engine that 'fixes' everything proves nothing."""
+        """Sanity check only: replacing a step with its OWN value must change nothing.
+
+        This is a weak control and is named honestly as such. It cannot fail
+        unless the intervention machinery is itself broken, because substituting
+        a value for itself is a no-op by construction. It was originally written
+        as *the* negative control, which overstated how well the engine
+        discriminates; `TestCausalChainLimitations` carries the real one.
+        """
         incident = INCIDENTS[incident_id]
         trace = run_incident(incident).run.trace
         causal = trace.injection.true_causal_step
@@ -235,8 +242,136 @@ class TestCausalControls:
             )
 
             assert result.effect_size == 0.0, (
-                f"{incident_id}: intervening at unrelated {step_id} changed the outcome"
+                f"{incident_id}: substituting {step_id}'s own value changed the outcome — "
+                "the intervention machinery is corrupting runs"
             )
+
+
+def healthy_values(scenario_id: str) -> dict[str, object]:
+    """Tool -> the result it carries in a healthy run of this scenario."""
+    return {
+        s.tool: s.result
+        for s in run_clean(scenario_id).trace.steps
+        if s.type is StepType.TOOL_RESULT and s.result is not None
+    }
+
+
+def full_effect_steps(
+    runner: ExperimentRunner, incident_id: str, threshold: float = 0.5
+) -> list[str]:
+    """Every step whose correction prevents the failure — a real counterfactual sweep.
+
+    Each addressable step is replaced with the value it would carry in a healthy
+    run. Unlike substituting a step's own value, this can genuinely change the
+    outcome, so a step scoring zero here is informative.
+    """
+    incident = INCIDENTS[incident_id]
+    trace = run_incident(incident).run.trace
+    natural = healthy_values(incident.scenario_id)
+
+    hits = []
+    for step_id in addressable_steps(trace):
+        step = trace.step(step_id)
+        if step.result is None:
+            continue
+        result = runner.run(
+            scenario_id=incident.scenario_id,
+            seed=1337,
+            injection=incident.injected_failure,
+            intervention=InterventionSpec(
+                kind=InterventionKind.REPLACE_TOOL_RESULT,
+                step_id=step_id,
+                replacement=natural.get(step.tool, step.result),
+            ),
+            trials=TRIALS,
+            incident_id=incident_id,
+        )
+        if result.effect_size >= threshold:
+            hits.append(step_id)
+    return hits
+
+
+class TestCausalChainLimitations:
+    """What effect size alone can and cannot establish.
+
+    These tests exist because the original negative control was tautological
+    (substituting a value for itself). Sweeping with *healthy* values instead
+    shows the engine is sound but less discriminating than first reported:
+    a fault and its downstream consequences tie at the top.
+    """
+
+    @pytest.mark.parametrize("incident_id", ["I-001", "I-005"])
+    def test_downstream_consequences_tie_with_the_true_cause(
+        self, runner: ExperimentRunner, incident_id: str
+    ) -> None:
+        """Effect size does not uniquely identify a root cause.
+
+        Stale policy (s0007) -> wrong refund calculation (s0009) -> refund issued.
+        Correcting *either* upstream step prevents the failure, so both score the
+        maximum. Distinguishing cause from consequence needs something beyond
+        effect size — which is squarely P5's problem.
+        """
+        hits = full_effect_steps(runner, incident_id)
+        causal = run_incident(INCIDENTS[incident_id]).run.trace.injection.true_causal_step
+
+        assert causal in hits
+        assert len(hits) > 1, "expected a causal chain to produce tied effects"
+
+    @pytest.mark.parametrize("incident_id", ["I-003", "I-004"])
+    def test_isolated_faults_localize_uniquely(
+        self, runner: ExperimentRunner, incident_id: str
+    ) -> None:
+        """Where no downstream step can absorb the fault, the answer is unique."""
+        hits = full_effect_steps(runner, incident_id)
+        causal = run_incident(INCIDENTS[incident_id]).run.trace.injection.true_causal_step
+
+        assert hits == [causal]
+
+    def test_tie_break_is_earliest_step_and_is_a_heuristic(
+        self, runner: ExperimentRunner
+    ) -> None:
+        """When effects tie, the earliest step wins — by heuristic, not evidence.
+
+        Causes precede consequences, so this is defensible and happens to be
+        right here. It is asserted explicitly so nobody mistakes the tie-break
+        for a measurement.
+        """
+        hits = full_effect_steps(runner, "I-001")
+
+        assert len(hits) > 1
+        assert min(hits) == run_incident(INCIDENTS["I-001"]).run.trace.injection.true_causal_step
+
+    def test_replace_only_vocabulary_cannot_reach_a_retry_fault(
+        self, runner: ExperimentRunner
+    ) -> None:
+        """I-002's fix is skipping a call, not substituting a value.
+
+        No replacement experiment can find it, and the engine reports nothing
+        rather than promoting a best-of-a-bad-set answer. Returning None is the
+        correct behaviour; inventing a cause would not be.
+        """
+        assert full_effect_steps(runner, "I-002") == []
+
+    def test_the_right_vocabulary_does_reach_it(self, runner: ExperimentRunner) -> None:
+        """With SKIP_TOOL_CALL available, I-002 localizes correctly.
+
+        So the limitation above is one of intervention vocabulary, not of the
+        engine — which is why the planner's choice of intervention kind matters.
+        """
+        trace = run_incident(INCIDENTS["I-002"]).run.trace
+        causal = trace.injection.true_causal_step
+
+        result = runner.run(
+            scenario_id=INCIDENTS["I-002"].scenario_id,
+            seed=1337,
+            injection=INCIDENTS["I-002"].injected_failure,
+            intervention=InterventionSpec(
+                kind=InterventionKind.SKIP_TOOL_CALL, step_id=causal
+            ),
+            trials=TRIALS,
+        )
+
+        assert result.effect_size == pytest.approx(1.0)
 
     @pytest.mark.parametrize("incident_id", INCIDENT_IDS)
     def test_localization_picks_the_true_causal_step(

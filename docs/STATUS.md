@@ -31,7 +31,7 @@ Within a phase, % done = satisfied acceptance criteria ÷ total acceptance crite
 
 ## Current phase
 
-**P4 — Deterministic replay engine + counterfactual interventions.** Complete. All 6 acceptance criteria verified. **The highest-risk phase passed: byte-identical strict replay works, and counterfactual evidence discriminates 5/5 with perfect separation.**
+**P4 — Deterministic replay engine + counterfactual interventions.** Complete. All 6 acceptance criteria verified. Byte-identical strict replay works. Counterfactual evidence localizes correctly in **4/5** incidents, with two measured limitations (see technical debt) that P5 must address.
 
 ## Current objective
 
@@ -43,7 +43,7 @@ Begin **P5 — Minimal AFTERMATH forensic pipeline (the MVP vertical slice)**: 1
 - **P1** — backend package, trace schema + content hashing, LLM provider abstraction (mock/gemini/recording), SQLite persistence + artifact store, FastAPI skeleton, 64-test pytest suite, import-boundary enforcement.
 - **P2** — seeded simulated world (versioned policies), 7 simulated tools, `CompanyAgent` adapter + custom-loop agent (D-004 resolved), trace collector, 5 clean scenarios with deterministic oracles.
 - **P3** — injection framework (tool-result, world-state, retry layers), incident definition format + loader, **5 incidents** with injector-authored ground truth, normal-case set.
-- **P4** — deterministic replay engine, counterfactual interventions, N-trial experiment runner, effect-size ranking. Byte-identical strict replay verified; 5/5 correct root-cause localization with +1.00 vs +0.00 separation.
+- **P4** — deterministic replay engine, counterfactual interventions, N-trial experiment runner, effect-size ranking. Byte-identical strict replay verified; 4/5 correct root-cause localization under a strong (healthy-value) control.
 
 ## Active tasks
 
@@ -63,7 +63,7 @@ Begin **P5 — Minimal AFTERMATH forensic pipeline (the MVP vertical slice)**: 1
 
 ## Failing tests
 
-None. **322 passed** offline (`pytest backend/tests -q`, ~1.0s), plus 3 opt-in `live` tests.
+None. **329 passed** offline (`pytest backend/tests -q`, in 2.30s), plus 3 opt-in `live` tests.
 
 ## Known bugs
 
@@ -72,7 +72,9 @@ None known.
 ## Technical debt
 
 - `immunity/`, `benchmark/`, `forensics/` are still empty package stubs. The import-boundary guard is now load-bearing for `replay/` (493 lines, verified to fail on a deliberate violation).
-- **Failure rates are 0.0 or 1.0 with zero variance**, because the agent's control flow is deterministic. Effect sizes are correspondingly clean (+1.00 / +0.00). Real agents will produce intermediate rates; `TrialSummary.distinct_traces` tracks trace variance so that shift is visible rather than silent.
+- **Effect size localizes the causal chain, not the root cause.** In I-001 and I-005 both the injected fault (s0007) and its downstream consequence (s0009) score maximum effect, because correcting either prevents the failure. `localize()` picks the earliest tied step, which is a **heuristic, not evidence**. Separating cause from consequence is a P5 requirement, covered by `TestCausalChainLimitations`.
+- **The intervention vocabulary bounds what is findable.** I-002's fix is skipping a duplicated call, so no value-replacement experiment reaches it and `localize()` correctly returns `None`. With `SKIP_TOOL_CALL` it localizes at +1.00 — so the planner's choice of intervention *kind* is load-bearing, not incidental.
+- **Failure rates are 0.0 or 1.0 with zero variance**, because the agent's control flow is deterministic. Real agents will produce intermediate rates; `TrialSummary.distinct_traces` tracks trace variance so that shift is visible rather than silent.
 - P4's corrective interventions are written by us from the trace and a clean run, not proposed by a model. Whether an LLM proposes them unaided is untested until P5 — the harder problem.
 - The MVP agent's control flow is deterministic Python; the model narrates reasoning but does not decide. Deliberate (D-003), but it means agent-reasoning failure modes cannot be injected at the model level.
 - **The CONTEXT injection layer is taxonomy only — no kind implements it.** `calculate_refund` re-reads the customer from world state rather than using what `get_customer` returned, so altering that call's arguments changes nothing the agent decides. Revisit when the agent's data flow deepens.

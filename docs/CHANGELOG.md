@@ -114,26 +114,36 @@ The live divergence is the finding worth keeping. At `temperature=0.0`, two runs
 
 The controls, run across all 5 incidents (5 trials each, 26 experiments total):
 
-| incident | intervention at true cause | effect | unrelated steps tested | max effect | localized |
-|---|---|---:|---:|---:|---|
-| I-001 | replace_tool_result @s0007 | **+1.00** | 4 | +0.00 | ✅ s0007 |
-| I-002 | skip_tool_call @s0019 | **+1.00** | 7 | +0.00 | ✅ s0019 |
-| I-003 | replace_tool_result @s0009 | **+1.00** | 4 | +0.00 | ✅ s0009 |
-| I-004 | replace_tool_result @s0007 | **+1.00** | 2 | +0.00 | ✅ s0007 |
-| I-005 | replace_tool_result @s0007 | **+1.00** | 4 | +0.00 | ✅ s0007 |
+| incident | intervention at true cause | effect | steps at full effect (healthy-value sweep) | localized |
+|---|---|---:|---|---|
+| I-001 | replace_tool_result @s0007 | **+1.00** | s0007, **s0009** (downstream) | ✅ s0007 |
+| I-002 | skip_tool_call @s0019 | **+1.00** | *none reachable by replacement* | ❌ None |
+| I-003 | replace_tool_result @s0009 | **+1.00** | s0009 | ✅ s0009 |
+| I-004 | replace_tool_result @s0007 | **+1.00** | s0007 | ✅ s0007 |
+| I-005 | replace_tool_result @s0007 | **+1.00** | s0007, **s0009** (downstream) | ✅ s0007 |
 
-**5/5 correct localization; perfect separation** — +1.00 at the true cause, +0.00 at every one of the 21 unrelated steps. The negative control is the load-bearing half: an engine that "fixed" everything would score identically on the positive control alone and be worthless.
+**4/5 correct localization.**
 
-**RESULT / EVIDENCE.** `pytest backend/tests -q` → **322 passed** in ~1.0s, offline.
+**⚠ CORRECTION, made the same day this entry was first written.** The original version of this entry claimed *5/5 with perfect separation, +1.00 vs +0.00 across 21 unrelated steps*. That was measured against a **tautological control**: each unrelated step was replaced with *its own recorded value*, which is a no-op by construction and could never have scored anything but 0.00. It manufactured confidence rather than testing anything.
+
+Re-running the sweep with each step replaced by the value it carries in a **healthy** run — a control that can actually fail — gives the table above and two real limitations:
+
+1. **Effect size localizes the causal chain, not the root cause.** In I-001 and I-005, the stale policy (s0007) causes the wrong refund calculation (s0009); correcting *either* prevents the failure, so both score +1.00. `localize()` returns s0007 only because ties break on lowest step id. That earliest-step rule is defensible (causes precede consequences) but it is a **heuristic, not evidence**, and it was previously presented as evidence.
+2. **The intervention vocabulary bounds what is findable.** I-002's fix is skipping a duplicated call, so no value-replacement experiment reaches it. The engine returned `None` rather than promoting a best-of-a-bad-set answer — correct behaviour — and with `SKIP_TOOL_CALL` it localizes at +1.00.
+
+Both limitations are now asserted as tests (`TestCausalChainLimitations`) so they cannot silently regress, and both are P5 requirements: separating cause from consequence, and choosing the right intervention *kind*, are exactly what a counterfactual planner has to earn.
+
+**RESULT / EVIDENCE.** `pytest backend/tests -q` → **329 passed** in ~2.3s, offline.
 
 **Two honest caveats.**
 
 1. **The perfect separation is partly a property of the current agent.** Control flow is deterministic Python, so failure rates are 0.0 or 1.0 with no variance and effect sizes are maximally clean. Real agents will produce intermediate rates. `TrialSummary.distinct_traces` tracks trace variance so this transition is visible rather than silent, and the rates are measured rather than assumed for exactly that reason.
 2. **The corrective interventions in P4's controls are written by us, not proposed by a model.** They use only the trace and a clean run — never the injector's internals — so they are genuine counterfactuals rather than a privileged undo. But whether an LLM *proposes* the right intervention unaided is untested until P5, and it is the harder problem.
+3. **A control that cannot fail is not a control.** The correction above is the most useful lesson from this phase, and the testing philosophy now states the rule explicitly: before writing a control, ask what result would falsify it.
 
 **A guard became real.** `test_import_boundaries` had inspected empty stubs since P1. `replay/` is now 493 lines, and the guard was verified to fail when a model import is deliberately introduced, then restored.
 
-**DECISION: KEEP.** The premise holds: counterfactual replay produces measurable causal evidence.
+**DECISION: KEEP, with the claim corrected.** The premise holds — counterfactual replay produces measurable causal evidence, and it rules out most steps decisively. What it does *not* yet do is separate a cause from its consequences without a heuristic.
 
 ---
 
