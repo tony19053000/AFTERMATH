@@ -305,3 +305,55 @@ class TestOracleIndependence:
 
         assert verdict.status is OutcomeStatus.FAIL
         assert "entitles 0" in verdict.detail
+
+
+class TestToolFailureHandling:
+    """Every tool call can fail; the agent must not crash or fail unsafely."""
+
+    def test_failed_approval_declines_rather_than_crashing(self) -> None:
+        """Found by a counterfactual that skipped the approval call.
+
+        The agent read `approval.result["granted"]` unguarded and raised
+        TypeError on a None result. Declining is the only safe default: the
+        alternative is an over-limit refund with no approver recorded.
+        """
+        from aftermath.companyagent.tools import ToolOutcome
+        from aftermath.core.trace import StepType
+
+        class SkipApproval:
+            fired = False
+
+            def ground_truth(self):
+                return None
+
+            def prepare_world(self, world):
+                return world
+
+            def override_call(self, tool, arguments):
+                if tool == "request_human_approval":
+                    return ToolOutcome(error="approval service unavailable")
+                return None
+
+            def transform_outcome(self, tool, arguments, outcome, world):
+                return outcome
+
+            def extra_calls(self, tool, arguments, outcome):
+                return []
+
+            def note_step(self, *, call_step, result_step):
+                return None
+
+        run = SimpleCustomerOpsAgent(None, narrate=False, injector=SkipApproval()).run(
+            get_scenario("refund_needs_approval"), build_world()
+        )
+
+        # It no longer crashes, and it fails SAFELY: no money moves. Declining a
+        # legitimate refund is still a failure (an availability one), which the
+        # invariants correctly report — the point is that it is graceful and
+        # conservative rather than a TypeError or an unapproved payout.
+        assert run.world.total_refunded("ORD-2001") == 0
+        assert run.trace.outcome.oracle == "refund_within_current_policy"
+        assert "under-refunded" in run.trace.outcome.detail
+        approvals = [s for s in run.trace.steps if s.type is StepType.APPROVAL_REQUEST]
+        assert approvals and approvals[-1].granted is False
+        assert "could not obtain supervisor approval" in run.trace.steps[-1].text

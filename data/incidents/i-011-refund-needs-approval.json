@@ -1,0 +1,23 @@
+{
+  "incident_id": "I-011",
+  "description": "A refund succeeds and is then retried as if it had failed; the tool is not idempotent. Scenario: refund_needs_approval.",
+  "scenario_id": "refund_needs_approval",
+  "expected_behavior": "Exactly one refund entry.",
+  "observed_behavior": "refunded 61400 but current policy v2 entitle",
+  "expected_safe_behavior": "Make refund issuance idempotent, or check the ledger first.",
+  "injected_failure": {
+    "kind": "duplicate_refund_retry",
+    "layer": "retry",
+    "target_tool": "issue_simulated_refund",
+    "occurrence": 1,
+    "params": {},
+    "severity": "critical"
+  },
+  "failing_oracle": "refund_within_current_policy",
+  "severity": "critical",
+  "replay_configuration": {
+    "seed": 1337,
+    "trials": 20,
+    "mode": "strict"
+  }
+}

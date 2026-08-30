@@ -32,6 +32,8 @@ from aftermath.replay.repair import RepairKind, RepairSpec, evaluate_repair
 
 INCIDENTS = load_incidents()
 INCIDENT_IDS = sorted(INCIDENTS)
+# See test_world_state_fault_is_reported_as_unlocalizable.
+LOCALIZABLE = [i for i in INCIDENT_IDS if i != "I-005"]
 TRIALS = 3
 
 
@@ -47,11 +49,11 @@ def truth_of(incident_id: str) -> str:
 
 
 class TestPipelineEndToEnd:
-    @pytest.mark.parametrize("incident_id", INCIDENT_IDS)
+    @pytest.mark.parametrize("incident_id", LOCALIZABLE)
     def test_localizes_the_true_cause(self, deterministic_reports, incident_id) -> None:
         assert deterministic_reports[incident_id].root_cause_step == truth_of(incident_id)
 
-    @pytest.mark.parametrize("incident_id", INCIDENT_IDS)
+    @pytest.mark.parametrize("incident_id", LOCALIZABLE)
     def test_every_causal_claim_cites_an_experiment(
         self, deterministic_reports, incident_id
     ) -> None:
@@ -166,16 +168,22 @@ class TestCauseVersusConsequence:
             assert report.dominance_evidence
             assert any(e["normalized"] for e in report.dominance_evidence)
 
-    def test_heuristic_fallback_is_labelled_as_such(self, deterministic_reports) -> None:
-        """I-005 is a world-state fault: no step normalizes the other.
+    def test_world_state_fault_is_reported_as_unlocalizable(
+        self, deterministic_reports
+    ) -> None:
+        """I-005 yields no cause, and the pipeline says so instead of guessing.
 
-        The answer is still correct, but it rests on the earliest-step rule, and
-        the report must say so rather than presenting it as evidence.
+        Correcting the policy step does not make the run safe — it makes the
+        agent request a version the world cannot resolve, so it under-refunds
+        instead. No intervention prevents the failure, so there is no evidenced
+        cause. Reporting one anyway would be the failure mode this project
+        exists to avoid.
         """
         report = deterministic_reports["I-005"]
 
-        assert report.resolution is CauseResolution.EARLIEST_STEP_HEURISTIC
-        assert not report.resolved_by_measurement
+        assert report.root_cause_step is None
+        assert report.resolution is CauseResolution.NONE
+        assert report.repair is None
 
     def test_retry_fault_needs_the_right_intervention_kind(
         self, deterministic_reports
@@ -202,19 +210,21 @@ class TestRepairIsMeasuredNotArgued:
         assert report.repair["prevention_rate"] == 1.0
         assert report.repair["false_block_rate"] == 0.0
 
-    def test_a_repair_that_breaks_normal_cases_is_not_accepted(
+    def test_an_uncovered_fault_class_yields_no_accepted_repair(
         self, deterministic_reports
     ) -> None:
-        """I-005 has no acceptable repair in the library, and says so.
+        """The guard library has nothing for corrupted refund arithmetic.
 
-        Only `block_all_refunds` prevents it, at the cost of legitimate refunds.
-        Reporting that as a solution would be the exact failure this measurement
-        exists to catch.
+        I-007 localizes correctly, but no guardrail in the library prevents it,
+        so the best candidate scores prevention 0.00 and is NOT accepted.
+        Reporting an ineffective guard as a fix would be worse than reporting
+        none — this is measured coverage, not an assumed one.
         """
-        report = deterministic_reports["I-005"]
+        report = deterministic_reports["I-007"]
 
+        assert report.root_cause_step is not None
         assert report.repair is not None
-        assert report.repair["false_block_rate"] > 0
+        assert report.repair["prevention_rate"] == 0.0
         assert not report.repair_accepted
 
     def test_blocking_everything_never_outranks_a_clean_repair(self) -> None:
@@ -357,3 +367,52 @@ class TestLiveAgentPath:
             if a["intervention"]["step_id"] == report.root_cause_step
         )
         assert chosen["intervention"]["kind"] == "skip_tool_call"
+
+
+class TestProviderFailureResilience:
+    """A flaky provider must not end a benchmark run.
+
+    Found during P7: a single transient 5xx from the model aborted a
+    20-incident run, because the orchestrator caught only parse failures.
+    """
+
+    def test_provider_error_degrades_to_the_deterministic_path(self) -> None:
+        from aftermath.llm.base import LLMError
+
+        class Failing:
+            name = "failing"
+
+            def complete(self, request):
+                raise LLMError("Gemini request failed: ServerError")
+
+        report = ForensicOrchestrator(Failing(), trials=TRIALS).investigate(INCIDENTS["I-001"])
+
+        assert report.hypothesis_source is HypothesisSource.EXHAUSTIVE_FALLBACK
+        assert any("ServerError" in e for e in report.agent_errors)
+        # The run still produces a correct, evidence-backed answer.
+        assert report.root_cause_step == truth_of("I-001")
+
+    def test_intermittent_failure_is_recorded_per_stage(self) -> None:
+        from aftermath.llm.base import LLMError
+
+        class FailAfterFirst:
+            name = "flaky"
+
+            def __init__(self) -> None:
+                self.calls = 0
+
+            def complete(self, request):
+                self.calls += 1
+                if self.calls > 1:
+                    raise LLMError("transient")
+                return type("R", (), {"text": json.dumps({"hypotheses": [
+                    {"suspected_step_id": truth_of("I-001"), "mechanism": "stale policy"}
+                ]})})()
+
+        report = ForensicOrchestrator(FailAfterFirst(), trials=TRIALS).investigate(
+            INCIDENTS["I-001"]
+        )
+
+        assert report.hypothesis_source is HypothesisSource.AGENT
+        assert report.agent_errors, "later stage failures must be recorded"
+        assert report.root_cause_step == truth_of("I-001")

@@ -251,3 +251,60 @@ So (a) is false: temperature 0 is not a determinism guarantee. The record/replay
 **A second finding, recorded because it generalizes.** The tie was invisible until the negative control was strengthened. The original control substituted each unrelated step with *its own recorded value* — a no-op by construction that could never have failed — and was reported as "perfect separation". `docs/TESTING.md` now carries the rule: **before writing a control, ask what result would falsify it; if nothing would, it is not a control.**
 
 **Reversible?** Yes — the tie-break is one line in `rank_by_effect`, and the goal is to replace it with evidence in P5.
+
+---
+
+## D-017 · 2026-08-30 · Baseline fairness review (required by D-007)
+
+**Decision.** The single-LLM baseline is judged fair on the five axes below, reviewed explicitly before any result was recorded.
+
+| axis | AFTERMATH | baseline | equal? |
+|---|---|---|---|
+| model | configured model | **same** model, same call path | ✅ |
+| input | redacted trace via `redact_for_agent` | **same** function, same payload | ✅ |
+| ground truth | never sees it | never sees it (asserted by test) | ✅ |
+| output schema | `root_cause_step_id` + mechanism | **same** field, same grader | ✅ |
+| grader | `benchmark.grader.grade` | **same** function, one implementation | ✅ |
+| replay / swarm / verification | yes | **no** | ✅ *intended* — this is the system under test |
+
+**On prompt quality.** The baseline prompt is not a one-liner. It states the hard part explicitly — *"Causes precede consequences"*, distinguish a step that **PRODUCED** a wrong value from one that **CONSUMED** it, and consider that an action which should never have happened is itself the cause. That is the same insight AFTERMATH's investigator prompt carries, and it is the insight that makes this task solvable. Withholding it would have produced a strawman.
+
+A test asserts these phrases are present, so the prompt cannot be quietly weakened later to flatter a result.
+
+**What the baseline is deliberately denied.** Counterfactual replay, the agent pipeline, and experimental verification. Those *are* the engineering system under test; giving them to the baseline would test nothing.
+
+**Consequences.** The comparison measures whether the engineering system helps, holding model capability constant. Two honest caveats attach to any result: the incident set is synthetic (D-002), and it is small — 20 incidents means a single answer moves the rate by 5 points, so differences of one or two incidents are not meaningful.
+
+**Reversible?** No — this is the methodology commitment from D-007 made concrete. **The result is published either way.**
+
+---
+
+## D-018 · 2026-08-30 · Gemini via a direct REST client, not the vendor SDK
+
+**Decision.** `GeminiProvider` calls the REST endpoint directly using stdlib `urllib`, with an explicit timeout and bounded retries. `google-genai` is no longer used.
+
+**Alternatives considered.** (a) Keep `google-genai`; (b) direct REST via stdlib; (c) direct REST via `httpx` (already present as a dev dependency).
+
+**Reason.** Measured, not preferred. During the P7 benchmark the SDK **hung indefinitely** on ordinary requests — the process sat at 0 CPU in state `S` for nine minutes with no error and no output, while the *identical* payload returned HTTP 200 in ~11s over plain `curl`. Setting `http_options={"timeout": …}` did not prevent it (the timeout is honoured for connect, not for the stall observed). A provider that can silently stall the layer everything depends on, with no diagnostic, is not acceptable.
+
+(c) was rejected only because it would promote a dev dependency to a runtime one for no gain; the request is a single POST.
+
+**Consequences.** ~60 lines of stdlib, zero runtime dependencies added, and exact control over timeout, retry, and which statuses are retryable (429/5xx). Token counts come from `usageMetadata`, so cost accounting is real. D-006 still holds: swapping providers touches one file. The `gemini` extra remains in `pyproject.toml` for anyone who prefers the SDK, but nothing imports it.
+
+**Validation.** After the change, a benchmark call that stalled took 116.7s — the 90s timeout fired and the retry succeeded, instead of blocking forever. That is the intended behaviour and it was observed in the real run.
+
+**Reversible?** Yes — one file.
+
+---
+
+## D-019 · 2026-08-30 · Do not add a repair guard after seeing which incidents lack one
+
+**Decision.** 10 of 20 incidents have no acceptable repair in the guard library. A `bound_refund_to_order_total` guard would likely fix the amount-corruption class. **It was deliberately not added during P7.**
+
+**Alternatives considered.** (a) Add the guard now, lifting repair coverage to ~20/20; (b) leave the gap and report it.
+
+**Reason.** The guard would be chosen *after* seeing which incidents the library fails on. That is fitting the library to the test set, and the resulting coverage number would measure our knowledge of the benchmark rather than the system's generality. The same instinct that rejects a strawman baseline (D-007) rejects this.
+
+**Consequences.** Reported repair coverage is 10/20 rather than a flattering number. The gap is recorded as a P8 item, where adding the guard and re-measuring is legitimate because the change is then made deliberately and its effect reported as a delta.
+
+**Reversible?** Yes — but if added, the before/after numbers must both be published.

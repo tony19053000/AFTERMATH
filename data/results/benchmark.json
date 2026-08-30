@@ -1,0 +1,278 @@
+{
+  "aftermath": {
+    "completion_tokens": 0,
+    "exact": 15,
+    "incidents": 20,
+    "latency_seconds": 1761.8350970745087,
+    "near_miss": 0,
+    "no_answer": 4,
+    "prompt_tokens": 0,
+    "system": "aftermath",
+    "wrong": 1
+  },
+  "aftermath_in_causal_set_rate": 0.75,
+  "aftermath_localization_rate": 0.75,
+  "artifact_hash": "sha256:d04602b2cb25fa7e176dc7ac0d6ebaefa080e404b1687fa490815a6cf9155d93",
+  "baseline": {
+    "completion_tokens": 4165,
+    "exact": 18,
+    "incidents": 20,
+    "latency_seconds": 202.30040526390076,
+    "near_miss": 0,
+    "no_answer": 0,
+    "prompt_tokens": 34381,
+    "system": "baseline",
+    "wrong": 2
+  },
+  "baseline_in_causal_set_rate": 0.9,
+  "baseline_localization_rate": 0.9,
+  "delta": -0.15000000000000002,
+  "incident_ids": [
+    "I-001",
+    "I-002",
+    "I-003",
+    "I-004",
+    "I-005",
+    "I-006",
+    "I-007",
+    "I-008",
+    "I-009",
+    "I-010",
+    "I-011",
+    "I-012",
+    "I-013",
+    "I-014",
+    "I-015",
+    "I-016",
+    "I-017",
+    "I-018",
+    "I-019",
+    "I-020"
+  ],
+  "per_incident": [
+    {
+      "aftermath": "exact",
+      "aftermath_answer": "s0007",
+      "baseline": "wrong",
+      "baseline_answer": "s0006",
+      "causal_set": [
+        "s0007",
+        "s0009"
+      ],
+      "incident_id": "I-001",
+      "true_causal_step": "s0007"
+    },
+    {
+      "aftermath": "exact",
+      "aftermath_answer": "s0019",
+      "baseline": "exact",
+      "baseline_answer": "s0019",
+      "causal_set": [
+        "s0019"
+      ],
+      "incident_id": "I-002",
+      "true_causal_step": "s0019"
+    },
+    {
+      "aftermath": "exact",
+      "aftermath_answer": "s0009",
+      "baseline": "exact",
+      "baseline_answer": "s0009",
+      "causal_set": [
+        "s0009"
+      ],
+      "incident_id": "I-003",
+      "true_causal_step": "s0009"
+    },
+    {
+      "aftermath": "exact",
+      "aftermath_answer": "s0007",
+      "baseline": "exact",
+      "baseline_answer": "s0007",
+      "causal_set": [
+        "s0007",
+        "s0009"
+      ],
+      "incident_id": "I-004",
+      "true_causal_step": "s0007"
+    },
+    {
+      "aftermath": "no_answer",
+      "aftermath_answer": null,
+      "baseline": "wrong",
+      "baseline_answer": "s0006",
+      "causal_set": [],
+      "incident_id": "I-005",
+      "true_causal_step": "s0007"
+    },
+    {
+      "aftermath": "exact",
+      "aftermath_answer": "s0014",
+      "baseline": "exact",
+      "baseline_answer": "s0014",
+      "causal_set": [
+        "s0014"
+      ],
+      "incident_id": "I-006",
+      "true_causal_step": "s0014"
+    },
+    {
+      "aftermath": "exact",
+      "aftermath_answer": "s0009",
+      "baseline": "exact",
+      "baseline_answer": "s0009",
+      "causal_set": [
+        "s0009"
+      ],
+      "incident_id": "I-007",
+      "true_causal_step": "s0009"
+    },
+    {
+      "aftermath": "exact",
+      "aftermath_answer": "s0009",
+      "baseline": "exact",
+      "baseline_answer": "s0009",
+      "causal_set": [
+        "s0009"
+      ],
+      "incident_id": "I-008",
+      "true_causal_step": "s0009"
+    },
+    {
+      "aftermath": "exact",
+      "aftermath_answer": "s0009",
+      "baseline": "exact",
+      "baseline_answer": "s0009",
+      "causal_set": [
+        "s0009"
+      ],
+      "incident_id": "I-009",
+      "true_causal_step": "s0009"
+    },
+    {
+      "aftermath": "wrong",
+      "aftermath_answer": "s0006",
+      "baseline": "exact",
+      "baseline_answer": "s0007",
+      "causal_set": [
+        "s0007",
+        "s0009"
+      ],
+      "incident_id": "I-010",
+      "true_causal_step": "s0007"
+    },
+    {
+      "aftermath": "exact",
+      "aftermath_answer": "s0019",
+      "baseline": "exact",
+      "baseline_answer": "s0019",
+      "causal_set": [
+        "s0019"
+      ],
+      "incident_id": "I-011",
+      "true_causal_step": "s0019"
+    },
+    {
+      "aftermath": "no_answer",
+      "aftermath_answer": null,
+      "baseline": "exact",
+      "baseline_answer": "s0009",
+      "causal_set": [
+        "s0009"
+      ],
+      "incident_id": "I-012",
+      "true_causal_step": "s0009"
+    },
+    {
+      "aftermath": "exact",
+      "aftermath_answer": "s0009",
+      "baseline": "exact",
+      "baseline_answer": "s0009",
+      "causal_set": [
+        "s0009"
+      ],
+      "incident_id": "I-013",
+      "true_causal_step": "s0009"
+    },
+    {
+      "aftermath": "no_answer",
+      "aftermath_answer": null,
+      "baseline": "exact",
+      "baseline_answer": "s0009",
+      "causal_set": [
+        "s0009"
+      ],
+      "incident_id": "I-014",
+      "true_causal_step": "s0009"
+    },
+    {
+      "aftermath": "exact",
+      "aftermath_answer": "s0007",
+      "baseline": "exact",
+      "baseline_answer": "s0007",
+      "causal_set": [
+        "s0007",
+        "s0009"
+      ],
+      "incident_id": "I-015",
+      "true_causal_step": "s0007"
+    },
+    {
+      "aftermath": "exact",
+      "aftermath_answer": "s0007",
+      "baseline": "exact",
+      "baseline_answer": "s0007",
+      "causal_set": [
+        "s0007",
+        "s0009"
+      ],
+      "incident_id": "I-016",
+      "true_causal_step": "s0007"
+    },
+    {
+      "aftermath": "exact",
+      "aftermath_answer": "s0009",
+      "baseline": "exact",
+      "baseline_answer": "s0009",
+      "causal_set": [
+        "s0009"
+      ],
+      "incident_id": "I-017",
+      "true_causal_step": "s0009"
+    },
+    {
+      "aftermath": "exact",
+      "aftermath_answer": "s0009",
+      "baseline": "exact",
+      "baseline_answer": "s0009",
+      "causal_set": [
+        "s0009"
+      ],
+      "incident_id": "I-018",
+      "true_causal_step": "s0009"
+    },
+    {
+      "aftermath": "exact",
+      "aftermath_answer": "s0009",
+      "baseline": "exact",
+      "baseline_answer": "s0009",
+      "causal_set": [
+        "s0009"
+      ],
+      "incident_id": "I-019",
+      "true_causal_step": "s0009"
+    },
+    {
+      "aftermath": "no_answer",
+      "aftermath_answer": null,
+      "baseline": "exact",
+      "baseline_answer": "s0009",
+      "causal_set": [
+        "s0009"
+      ],
+      "incident_id": "I-020",
+      "true_causal_step": "s0009"
+    }
+  ],
+  "verdict": "BASELINE ahead"
+}

@@ -1,6 +1,6 @@
 # AFTERMATH — Testing Strategy
 
-**Status:** live as of P6. 417 tests, fully offline and deterministic.
+**Status:** live as of P7. 816 tests, fully offline and deterministic.
 
 ---
 
@@ -72,7 +72,7 @@ uv pip install --python .venv/bin/python -e "backend[dev]"
 
 Markers: `slow` · `live` · `replay` · `benchmark` · `security`. `addopts` excludes `live` by default, so the suite never needs a network or a key.
 
-**Current:** 417 passed offline (~1.9s), plus 5 `live` tests that pass against the real provider when run deliberately.
+**Current:** 816 passed offline (~5.2s), plus 5 `live` tests that pass against the real provider when run deliberately.
 
 **Hermeticity.** An autouse fixture isolates tests from the repository `.env` and from `GEMINI_API_KEY` (D-013). The default run behaves identically whether or not a key is present on the machine — verified both ways. `live`-marked tests opt out and are the only ones permitted to reach a network.
 
@@ -142,8 +142,14 @@ Each phase's acceptance criteria in `docs/PHASES.md` map to named tests. A phase
 | P6 | every guardrail is load-bearing | `test_every_guardrail_is_load_bearing` |
 | P6 | no case passes vacuously | `test_no_case_passes_vacuously` |
 | P6 | unrepairable incident is not forced into a case | `TestUnrepairableIncidentIsNotForced` |
-| P7 | identical incident set for both systems | `test_baseline_parity` |
-| P7 | reported metrics match artifacts | `test_metrics_match_artifacts` |
+| P7 | identical incident set for both systems | `test_identical_incident_set_for_both_systems` |
+| P7 | both systems share one grader | `test_both_systems_graded_by_the_same_function` |
+| P7 | a near miss is never credited | `test_downstream_step_is_a_near_miss_and_still_not_correct` |
+| P7 | baseline prompt is genuinely competent | `test_prompt_is_substantive_and_gives_real_guidance` |
+| P7 | baseline never sees ground truth | `test_baseline_never_sees_ground_truth` |
+| P7 | a baseline win is reportable | `test_comparison_reports_a_baseline_win_honestly` |
+| P7 | empty run raises rather than reporting 0.0 | `test_empty_run_raises_rather_than_reporting_zero` |
+| P7 | reported metrics match artifacts | `test_artifact_carries_every_reported_number` |
 | P8 | agent count is configuration | `test_swarm_configurable` |
 
 Extend this table as phases land.

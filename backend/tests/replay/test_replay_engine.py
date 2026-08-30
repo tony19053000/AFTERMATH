@@ -46,6 +46,12 @@ from aftermath.replay.intervention import (
 
 INCIDENTS = load_incidents()
 INCIDENT_IDS = sorted(INCIDENTS)
+# I-005 is a world-state fault: correcting the tool output does not produce a
+# safe run, it produces a DIFFERENT failure (the agent then cannot resolve the
+# policy version and under-refunds). So no value-replacement intervention
+# prevents it, and it is excluded from controls that assume one exists.
+# `test_world_state_fault_has_no_value_replacement_fix` asserts that directly.
+VALUE_FIXABLE = [i for i in INCIDENT_IDS if i != "I-005"]
 SCENARIO_IDS = sorted(SCENARIOS)
 
 TRIALS = 5  # deterministic agent: 5 trials prove as much as 50, far faster
@@ -187,7 +193,7 @@ class TestFailureRateReproduction:
 class TestCausalControls:
     """The heart of P4: does the evidence actually discriminate?"""
 
-    @pytest.mark.parametrize("incident_id", INCIDENT_IDS)
+    @pytest.mark.parametrize("incident_id", VALUE_FIXABLE)
     def test_positive_control_intervening_at_the_true_cause_prevents_failure(
         self, runner: ExperimentRunner, incident_id: str
     ) -> None:
@@ -300,7 +306,7 @@ class TestCausalChainLimitations:
     a fault and its downstream consequences tie at the top.
     """
 
-    @pytest.mark.parametrize("incident_id", ["I-001", "I-005"])
+    @pytest.mark.parametrize("incident_id", ["I-001"])
     def test_downstream_consequences_tie_with_the_true_cause(
         self, runner: ExperimentRunner, incident_id: str
     ) -> None:
@@ -341,6 +347,23 @@ class TestCausalChainLimitations:
         assert len(hits) > 1
         assert min(hits) == run_incident(INCIDENTS["I-001"]).run.trace.injection.true_causal_step
 
+    def test_world_state_fault_has_no_value_replacement_fix(
+        self, runner: ExperimentRunner
+    ) -> None:
+        """I-005: correcting the tool output swaps one failure for another.
+
+        The policy store genuinely lacks v2. Substituting a correct-looking
+        policy record makes the agent request a version the world cannot
+        resolve, so it declines and under-refunds instead. No value replacement
+        prevents the failure, and the engine reports no cause rather than
+        crediting an intervention that merely changed the symptom.
+
+        Under the earlier single-oracle scenarios this incident appeared to
+        localize; the stronger invariant set revealed that as an artifact of a
+        narrow oracle, not a real result.
+        """
+        assert full_effect_steps(runner, "I-005") == []
+
     def test_replace_only_vocabulary_cannot_reach_a_retry_fault(
         self, runner: ExperimentRunner
     ) -> None:
@@ -373,7 +396,7 @@ class TestCausalChainLimitations:
 
         assert result.effect_size == pytest.approx(1.0)
 
-    @pytest.mark.parametrize("incident_id", INCIDENT_IDS)
+    @pytest.mark.parametrize("incident_id", VALUE_FIXABLE)
     def test_localization_picks_the_true_causal_step(
         self, runner: ExperimentRunner, incident_id: str
     ) -> None:

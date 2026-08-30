@@ -30,6 +30,7 @@ from aftermath.forensics.agents import (
     Verifier,
 )
 from aftermath.forensics.parsing import AgentOutputError
+from aftermath.llm.base import LLMError
 from aftermath.forensics.redaction import redact_for_agent
 from aftermath.forensics.schemas import Hypothesis, PlannedExperiment
 from aftermath.injection.incidents import IncidentDefinition
@@ -124,7 +125,7 @@ class ForensicOrchestrator:
                 if valid:
                     return valid, HypothesisSource.AGENT
                 errors.append("investigator: no hypothesis named a real step")
-            except AgentOutputError as exc:
+            except (AgentOutputError, LLMError) as exc:
                 errors.append(f"investigator: {exc}")
 
         # Exhaustive sweep. Candidates are every step that carries a value AND
@@ -163,7 +164,7 @@ class ForensicOrchestrator:
                 if output.experiments:
                     return output.experiments
                 errors.append("planner: produced no experiments")
-            except AgentOutputError as exc:
+            except (AgentOutputError, LLMError) as exc:
                 errors.append(f"planner: {exc}")
 
         # Deterministic default: skip duplicated actions, replace wrong values.
@@ -295,7 +296,7 @@ class ForensicOrchestrator:
                     RepairSpec(kind=p.kind, rationale=p.rationale)
                     for p in RepairAgent(self._provider).propose(evidence).proposals
                 ]
-            except AgentOutputError as exc:
+            except (AgentOutputError, LLMError) as exc:
                 errors.append(f"repair agent: {exc}")
 
         if not candidates:
@@ -343,7 +344,7 @@ class ForensicOrchestrator:
                 )
                 .model_dump(mode="json")
             )
-        except AgentOutputError as exc:
+        except (AgentOutputError, LLMError) as exc:
             errors.append(f"verifier: {exc}")
             return None
 

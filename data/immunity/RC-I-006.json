@@ -1,0 +1,26 @@
+{
+  "case_id": "RC-I-006",
+  "evidence_artifact_hash": "sha256:066218811e4a1ae088c07648b92a13e06b6a5f8a60546369d1851ccc9671dd25",
+  "evidence_effect_size": 1.0,
+  "expected_safe_behavior": "Make refund issuance idempotent, or check the ledger first.",
+  "failing_oracle": "refund_within_current_policy",
+  "incident_id": "I-006",
+  "injection": {
+    "kind": "duplicate_refund_retry",
+    "layer": "retry",
+    "occurrence": 1,
+    "params": {},
+    "severity": "critical",
+    "target_tool": "issue_simulated_refund"
+  },
+  "root_cause_step": "s0014",
+  "scenario_id": "refund_in_window",
+  "seed": 1337,
+  "severity": "critical",
+  "trials": 5,
+  "verified_repair": {
+    "kind": "idempotent_refund",
+    "params": {},
+    "rationale": ""
+  }
+}

@@ -46,6 +46,11 @@ class InjectionKind(StrEnum):
     DUPLICATE_REFUND_RETRY = "duplicate_refund_retry"
     APPROVAL_BYPASS = "approval_bypass"
     MALFORMED_POLICY_OUTPUT = "malformed_policy_output"
+    # Generic: set one field of a tool result to a chosen value. One mechanism
+    # covers many distinct incidents (inflated amounts, forced eligibility,
+    # raised limits, wrong order data) without a bespoke kind for each, which
+    # keeps the injector small and the incidents comparable to one another.
+    OVERRIDE_RESULT_FIELD = "override_result_field"
 
 
 class InjectionSpec(BaseModel):

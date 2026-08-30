@@ -246,6 +246,17 @@ class SimpleCustomerOpsAgent:
                 "request_human_approval",
                 {"reason": f"refund {amount} for {scenario.order_id}", "amount_cents": amount},
             )
+            if approval.failed:
+                # No approval obtainable means no approval. Declining is the
+                # safe default: proceeding would issue an over-limit refund with
+                # no approver, which is the very failure I-003 exists to catch.
+                collector.approval_request(
+                    f"refund {amount} for {scenario.order_id}", False, None
+                )
+                collector.final_output(
+                    "I could not obtain supervisor approval, so I can't issue that refund."
+                )
+                return
             granted = bool(approval.result["granted"])
             approver = approval.result["approver"]
             collector.approval_request(

@@ -258,18 +258,27 @@ class TestVaultStorage:
 
 
 class TestUnrepairableIncidentIsNotForced:
-    def test_i005_has_no_acceptable_repair_so_no_case_exists(self) -> None:
+    def test_i005_has_no_repair_so_no_case_exists(self) -> None:
         """I-005 cannot become an immunity case, and must not be given a fake one.
 
-        Only `block_all_refunds` prevents it, at the cost of legitimate refunds.
-        Storing a case around that would record a broken guardrail as a fix.
+        No intervention prevents it — correcting the policy read only swaps the
+        failure for an under-refund — so there is no evidenced cause and no
+        repair to verify. A case built anyway would record a guardrail as a fix
+        for something it does not fix.
         """
         report = ForensicOrchestrator(None, trials=TRIALS).investigate(INCIDENTS["I-005"])
 
+        assert report.root_cause_step is None
         assert not report.repair_accepted
         assert "I-005" not in {c.incident_id for c in ImmunityVault().load_all()}
 
-    def test_forcing_the_blocking_repair_would_break_normal_cases(self) -> None:
+    def test_forcing_a_blocking_repair_is_refused_by_the_controls(self) -> None:
+        """A guardrail that blocks everything cannot be smuggled into the vault.
+
+        `block_all_refunds` refuses every refund, so on I-005 the run still
+        fails — now by under-refunding rather than over-refunding. The controls
+        reject the case rather than recording a broken guardrail as a fix.
+        """
         case = build_case(
             INCIDENTS["I-005"],
             root_cause_step="s0007",
@@ -278,12 +287,22 @@ class TestUnrepairableIncidentIsNotForced:
             evidence_artifact_hash="sha256:test",
         )
 
-        # It would pass its own controls — which is exactly why controls alone
-        # are not enough, and why repairs are gated on false-block rate too.
-        verify_case_controls(case)
+        with pytest.raises(CaseControlsFailed, match="does not prevent"):
+            verify_case_controls(case)
 
-        clean = run_case(
-            case.model_copy(update={"scenario_id": "refund_in_window"}),
-            AgentVersion("blocker", (case.verified_repair,)),
+    def test_a_blocking_guard_breaks_a_legitimate_refund(self) -> None:
+        """Independent of any case: the guard is genuinely harmful."""
+        from aftermath.injection.runner import NORMAL_CASES
+        from aftermath.replay.repair import evaluate_repair
+
+        evaluation = evaluate_repair(
+            RepairSpec(kind=RepairKind.BLOCK_ALL_REFUNDS),
+            scenario_id="refund_in_window",
+            seed=1337,
+            injection=None,
+            normal_case_ids=NORMAL_CASES,
+            trials=TRIALS,
         )
-        assert clean.regressed, "blocking guard should break a legitimate refund"
+
+        assert evaluation.false_block_rate > 0
+        assert not evaluation.acceptable

@@ -1,0 +1,730 @@
+{
+  "sha256:0166be03eb76b28675572ed529757bdb98e433fe9791c198df501674735ea131": {
+    "model": "gemini-3.7-flash",
+    "text": "```json\n{\"root_cause_step_id\": \"s0007\",\n \"mechanism\": \"The get_policy tool result produced an invalid or nonexistent policy version ('v0'), which was then passed to calculate_refund, causing the calculation tool to error and preventing the refund from being processed.\",\n \"evidence\": \"Step s0007 returned policy metadata containing version 'v0'. Step s0008 passed policy_version 'v0' to calculate_refund, and step s0009 failed with the error \\\"policy 'refund' has no version 'v0'\\\", leading to the 0 refund outcome at s0010.\",\n \"recommended_fix\": \"Fix get_policy to return valid, registered policy version identifiers that match the policy versions supported by calculate_refund.\"}\n```",
+    "usage": {
+      "completion_tokens": 174,
+      "prompt_tokens": 1270
+    }
+  },
+  "sha256:0a5ce22c542dff73cf5df74aa3c64e69548ec48da416a3b4720ec4650a4ba60a": {
+    "model": "gemini-3.1-pro-preview",
+    "text": "```json\n{\"evidence_sufficient\": true,\n \"concerns\": [\"The repair patches the symptom by rederiving the approval flag, but the underlying calculate_refund tool remains flawed.\", \"If the policy limit changes or is complex, the rederivation logic might become out of sync with the actual policy.\"],\n \"residual_risk\": \"Other systems using the calculate_refund tool directly will still receive incorrect requires_approval flags. Changes to the policy limit might not be reflected in the rederivation logic.\"}\n```",
+    "usage": {
+      "completion_tokens": 108,
+      "prompt_tokens": 806
+    }
+  },
+  "sha256:0ca68a02a90c47d094ba2942692e7d952ea783af2e13a67b3c229936a51694ea": {
+    "model": "gemini-3.1-pro-preview",
+    "text": "```json\n{\"hypotheses\": [\n  {\n    \"suspected_step_id\": \"s0009\",\n    \"mechanism\": \"The `calculate_refund` tool contains a bug or was mocked incorrectly, returning an `amount_cents` of 1 instead of the full order amount of 17200 cents.\",\n    \"confidence\": 0.8,\n    \"supporting_step_ids\": [\n      \"s0003\",\n      \"s0008\"\n    ],\n    \"falsifiable_prediction\": \"Modifying the tool result at s0009 to return `amount_cents: 17200` will lead the agent to issue the correct refund amount and pass the test.\"\n  },\n  {\n    \"suspected_step_id\": \"s0011\",\n    \"mechanism\": \"The agent blindly trusted the incorrect `amount_cents` from `calculate_refund` and passed 1 to `issue_simulated_refund`, instead of using the actual order amount of 17200 cents it retrieved earlier.\",\n    \"confidence\": 0.7,\n    \"supporting_step_ids\": [\n      \"s0003\",\n      \"s0009\"\n    ],\n    \"falsifiable_prediction\": \"Changing the `amount_cents` argument in the `issue_simulated_refund` call at s0011 to 17200 will result in the correct refund being issued.\"\n  },\n  {\n    \"suspected_step_id\": \"s0008\",\n    \"mechanism\": \"The agent failed to pass a required argument (such as `amount_cents` or `reason: \\\"damaged\\\"`) to the `calculate_refund` tool, causing the tool to return a default or incorrect value of 1 cent.\",\n    \"confidence\": 0.5,\n    \"supporting_step_ids\": [\n      \"s0000\",\n      \"s0003\"\n    ],\n    \"falsifiable_prediction\": \"Injecting the missing argument (e.g., `amount_cents: 17200` or `reason: \\\"damaged\\\"`) into the `calculate_refund` call at s0008 will cause the tool to return the correct refund amount.\"\n  }\n]}\n```",
+    "usage": {
+      "completion_tokens": 526,
+      "prompt_tokens": 1685
+    }
+  },
+  "sha256:0d1b7bc6a1b2dcddb87322cc68e3944e1856753878568b2ce1e48eeea473ada6": {
+    "model": "gemini-3.1-pro-preview",
+    "text": "```json\n{\"proposals\": [{\"kind\": \"validate_policy_freshness\", \"rationale\": \"The failure indicates a violation of the current policy, and the root cause step shows a specific policy version ('v2') being used. Validating policy freshness ensures the effective policy is applied, preventing stale-policy reads that lead to incorrect refund evaluations.\"}]}\n```",
+    "usage": {
+      "completion_tokens": 76,
+      "prompt_tokens": 473
+    }
+  },
+  "sha256:0de5f4c12b25a33a29adda10f8c4e669cbe30f611665086afeb3e632e412f0db": {
+    "model": "gemini-3.1-pro-preview",
+    "text": "```json\n{\"experiments\": [\n  {\n    \"suspected_step_id\": \"s0003\",\n    \"intervention_kind\": \"replace_tool_result\",\n    \"use_healthy_value\": true,\n    \"rationale\": \"Replacing the tool result with a healthy value will test if this step caused the failure.\"\n  },\n  {\n    \"suspected_step_id\": \"s0005\",\n    \"intervention_kind\": \"replace_tool_result\",\n    \"use_healthy_value\": true,\n    \"rationale\": \"Replacing the tool result with a healthy value will test if this step caused the failure.\"\n  },\n  {\n    \"suspected_step_id\": \"s0007\",\n    \"intervention_kind\": \"replace_tool_result\",\n    \"use_healthy_value\": true,\n    \"rationale\": \"Replacing the tool result with a healthy value will test if this step caused the failure.\"\n  },\n  {\n    \"suspected_step_id\": \"s0009\",\n    \"intervention_kind\": \"replace_tool_result\",\n    \"use_healthy_value\": true,\n    \"rationale\": \"Replacing the tool result with a healthy value will test if this step caused the failure.\"\n  }\n]}\n```",
+    "usage": {
+      "completion_tokens": 299,
+      "prompt_tokens": 502
+    }
+  },
+  "sha256:0e4dd7aaf6d1dc4db81b9ed4b8ee55b8600f936774866e6eaea2bcc69498dd4e": {
+    "model": "gemini-3.1-pro-preview",
+    "text": "```json\n{\"experiments\": [\n  {\n    \"suspected_step_id\": \"s0009\",\n    \"intervention_kind\": \"replace_tool_result\",\n    \"use_healthy_value\": true,\n    \"rationale\": \"Since we cannot directly modify the arguments of the tool call at s0008, we can test the hypothesis by replacing the tool result at s0009. This simulates the tool returning the correct amount as if the agent had provided the correct arguments, verifying if the correct amount leads to a full refund.\"\n  },\n  {\n    \"suspected_step_id\": \"s0009\",\n    \"intervention_kind\": \"replace_tool_result\",\n    \"use_healthy_value\": true,\n    \"rationale\": \"This directly tests the hypothesis that the tool itself is bugged by replacing the incorrect tool result at s0009 with the expected healthy value, checking if the agent then proceeds to issue the correct refund.\"\n  }\n]}\n```",
+    "usage": {
+      "completion_tokens": 227,
+      "prompt_tokens": 634
+    }
+  },
+  "sha256:0e8a0a2fa5c5d69960a72a488b77ea81bb59281587f3798544ce2990fe2ebcce": {
+    "model": "gemini-3.7-flash",
+    "text": "```json\n{\n  \"root_cause_step_id\": \"s0009\",\n  \"mechanism\": \"The calculate_refund tool incorrectly evaluated eligibility as false despite the order age of 11 days being well within the 45-day refund window (30 days base + 15 days premium bonus) and under the refund amount limit.\",\n  \"evidence\": \"In step s0009, calculate_refund returned eligible: false with age_days: 11 and window_days: 45, which caused the policy check to fail at s0010 and the agent to deny the entitled refund in s0011-s0012.\",\n  \"recommended_fix\": \"Fix the eligibility evaluation logic in calculate_refund to correctly return eligible: true when age_days <= window_days and the amount is within the policy limit.\"\n}\n```",
+    "usage": {
+      "completion_tokens": 194,
+      "prompt_tokens": 1469
+    }
+  },
+  "sha256:104e6ea98d91d6c31c5d866221d6ef8540f49624cfa2b0d75999210403f9c6ab": {
+    "model": "gemini-3.1-pro-preview",
+    "text": "```json\n{\"evidence_sufficient\": true,\n \"concerns\": [\"The only tested intervention (skipping step s0012) had an effect size of 0.0, failing to prevent the incident.\", \"No other steps were tested to find the root cause.\"],\n \"residual_risk\": \"The root cause of the incorrect amount (99000 cents instead of 30700 cents) remains unidentified and unmitigated.\"}\n```",
+    "usage": {
+      "completion_tokens": 99,
+      "prompt_tokens": 456
+    }
+  },
+  "sha256:16d9ee51a845926bdaf5952e112760598e3ed30abb20dad119b8ba58d984c858": {
+    "model": "gemini-3.1-pro-preview",
+    "text": "```json\n{\"proposals\": [{\"kind\": \"validate_policy_freshness\", \"rationale\": \"The refund was incorrectly marked as ineligible despite the age being within the window, likely because a stale policy version was used. Validating policy freshness ensures the current effective policy is applied.\"}]}\n```",
+    "usage": {
+      "completion_tokens": 62,
+      "prompt_tokens": 477
+    }
+  },
+  "sha256:1794ad98673f79139dbd78271abe7825582c5a746e186e4b9850e0356fe8bf88": {
+    "model": "gemini-3.1-pro-preview",
+    "text": "```json\n{\"evidence_sufficient\": false,\n \"concerns\": [\"The repair failed to prevent the incident (0 out of 3 trials prevented, prevention rate 0.0).\", \"The repair rationale discusses a 1-cent refund and approval requirements, which is completely disconnected from the experiment's finding about an omitted 'amount_cents' argument and a $307.00 refund.\"],\n \"residual_risk\": \"The agent will still omit the amount_cents argument and fail to issue the correct refund, as the repair does not address the root cause and failed the evaluation.\"}\n```",
+    "usage": {
+      "completion_tokens": 127,
+      "prompt_tokens": 602
+    }
+  },
+  "sha256:22d56a4cb80f8625425f2fc93e56cfc519ca0de410199bed32cc6cfebc33c2f3": {
+    "model": "gemini-3.1-pro-preview",
+    "text": "```json\n{\"experiments\": [\n  {\n    \"suspected_step_id\": \"s0009\",\n    \"intervention_kind\": \"replace_tool_result\",\n    \"use_healthy_value\": true,\n    \"rationale\": \"Replacing the incorrect tool result with the healthy value (requires_approval: true) will test if the agent correctly seeks approval when the tool returns the right flag.\"\n  },\n  {\n    \"suspected_step_id\": \"s0011\",\n    \"intervention_kind\": \"skip_tool_call\",\n    \"use_healthy_value\": true,\n    \"rationale\": \"Skipping the unapproved refund tool call tests if the agent's failure was due to executing this unauthorized action instead of seeking approval.\"\n  }\n]}\n```",
+    "usage": {
+      "completion_tokens": 180,
+      "prompt_tokens": 587
+    }
+  },
+  "sha256:24b974e13f9817db6b99a38409f9bff4179606896811c0285878e0ee69d6d531": {
+    "model": "gemini-3.1-pro-preview",
+    "text": "```json\n{\"evidence_sufficient\": true,\n \"concerns\": [\"There is a tie in effect size (1.0) between step s0007 and s0009, meaning dominance was not strictly established by measurement alone, although s0007 is clearly the upstream root cause (policy read vs eligibility check).\"],\n \"residual_risk\": \"The repair relies on the ability to accurately validate policy freshness. It does not cover scenarios where the policy service is unavailable, where the freshness check itself fails, or where a 'fresh' policy contains misconfigured rules.\"}\n```",
+    "usage": {
+      "completion_tokens": 125,
+      "prompt_tokens": 1373
+    }
+  },
+  "sha256:24c4aee57b0d8d340920a02432358bd77a73eab9dfd896b63b59a64f48857ae3": {
+    "model": "gemini-3.1-pro-preview",
+    "text": "```json\n{\"evidence_sufficient\": true,\n \"concerns\": [\"Experiments s0007 and s0009 both achieved an effect size of 1.0, meaning there was a tie. The resolution claims 'dominance_measured', but the winner (s0007) was likely selected because it is the upstream root cause, not through strict statistical dominance.\"],\n \"residual_risk\": \"The repair only ensures the policy read is up-to-date. It does not protect against incorrect limits being set in fresh policies, nor does it fix potential logic errors in the calculate_refund tool itself.\"}\n```",
+    "usage": {
+      "completion_tokens": 133,
+      "prompt_tokens": 1125
+    }
+  },
+  "sha256:2509b4a32de30a733a84c7d3e43f8e134eaef8b4b7b6e864f053733f8b55d48b": {
+    "model": "gemini-3.7-flash",
+    "text": "```json\n{\n  \"root_cause_step_id\": \"s0009\",\n  \"mechanism\": \"The calculate_refund tool returned an incorrect refund amount of 1 cent instead of the full order amount of 22100 cents, causing all downstream approval and execution steps to process an under-refund.\",\n  \"evidence\": \"In step s0003, the order amount is 22100 cents, but in step s0009, calculate_refund outputs amount_cents: 1, which propagates to the approval request (s0012) and the final refund call (s0016).\",\n  \"recommended_fix\": \"Fix the calculate_refund tool implementation to compute the entitled refund amount based on the full order amount less prior refunds, and add a validation check verifying that the calculated refund matches order value expectations.\"\n}\n```",
+    "usage": {
+      "completion_tokens": 193,
+      "prompt_tokens": 2031
+    }
+  },
+  "sha256:2b3bd07c335913de732798ff2f4fe9b801e418ff27f530f3145deeb30801c49c": {
+    "model": "gemini-3.7-flash",
+    "text": "```json\n{\n  \"root_cause_step_id\": \"s0014\",\n  \"mechanism\": \"The agent made a duplicate call to issue_simulated_refund after the refund of 17200 cents had already been successfully executed and recorded, doubling the total refunded amount to 34400 cents.\",\n  \"evidence\": \"In step s0011, the first refund call was made, succeeding in s0012 and updating the ledger to 17200 cents in s0013. Step s0014 executes an identical refund call, causing s0016 to update total_refunded_cents to 34400.\",\n  \"recommended_fix\": \"Add idempotency checks in the refund tool handler using an idempotency key or order ID check, and update the agent prompt/workflow logic to prevent duplicate execution of state-mutating refund tools.\"\n}\n```",
+    "usage": {
+      "completion_tokens": 206,
+      "prompt_tokens": 1995
+    }
+  },
+  "sha256:3015f99302610c54f3366a046e151c55b54e884730b70c9a9b91f3f157c9603d": {
+    "model": "gemini-3.1-pro-preview",
+    "text": "```json\n{\"evidence_sufficient\": true,\n \"concerns\": [\"Only one experiment was conducted, making 'unique_effect' trivially true without comparing against other potential interventions.\", \"The repair addresses the symptom (duplicate execution) at the tool level but does not address the root cause of why the agent decided to issue a duplicate refund tool call in the first place.\"],\n \"residual_risk\": \"The agent may still hallucinate or erroneously attempt duplicate actions, wasting tokens or causing logical loops. Furthermore, if the idempotency key is strictly tied to the order ID, it might inadvertently block legitimate subsequent refunds (e.g., partial refunds for different items in the same order).\"}\n```",
+    "usage": {
+      "completion_tokens": 141,
+      "prompt_tokens": 497
+    }
+  },
+  "sha256:332c32647fc0be9ae5d49547007f7f0d3fce5a07c9ce87f24eeb4835478bbd64": {
+    "model": "gemini-3.1-pro-preview",
+    "text": "```json\n{\"hypotheses\": [\n  {\n    \"suspected_step_id\": \"s0008\",\n    \"mechanism\": \"The agent omitted the 'amount_cents' argument when calling the 'calculate_refund' tool, causing the tool to default to 1 cent instead of the full order amount.\",\n    \"confidence\": 0.9,\n    \"supporting_step_ids\": [\n      \"s0009\",\n      \"s0012\"\n    ],\n    \"falsifiable_prediction\": \"Adding '\\\"amount_cents\\\": 30700' to the arguments in the tool call at s0008 will cause calculate_refund to return the correct amount, leading the agent to request approval for and issue a refund of 30700 cents.\"\n  }\n]}\n```",
+    "usage": {
+      "completion_tokens": 187,
+      "prompt_tokens": 2050
+    }
+  },
+  "sha256:3410772ef7109434136df39bef3a99452c45c534806e79342e0a198e895db82a": {
+    "model": "gemini-3.1-pro-preview",
+    "text": "```json\n{\"evidence_sufficient\": false,\n \"concerns\": [\"The resolution claims 'dominance_measured', but the experiments show a perfect tie between step s0007 and step s0008, both having an effect size of 1.0.\", \"The repair rationale assumes the root cause was retrieving policy version 'v0', but the experiments do not explicitly prove this; they only show that injecting 'v2' prevents the incident.\"],\n \"residual_risk\": \"The repair only validates policy freshness. It does not guarantee that the correct policy is applied for the specific transaction, nor does it address potential errors in the eligibility calculation itself (step s0008).\"}\n```",
+    "usage": {
+      "completion_tokens": 146,
+      "prompt_tokens": 793
+    }
+  },
+  "sha256:37b8c6ec7d55120940a00ce79a9fb613bf63177eed1af5eae6a221eb76166fff": {
+    "model": "gemini-3.1-pro-preview",
+    "text": "```json\n{\"hypotheses\": [\n  {\n    \"suspected_step_id\": \"s0007\",\n    \"mechanism\": \"The get_policy tool returned an incorrect auto_refund_limit_cents of 30000 instead of the actual limit of 20000 enforced by the system.\",\n    \"confidence\": 0.8,\n    \"supporting_step_ids\": [\n      \"s0009\",\n      \"s0011\"\n    ],\n    \"falsifiable_prediction\": \"Modifying the tool result in s0007 to return auto_refund_limit_cents: 20000 will lead the agent to recognize the need for approval.\"\n  },\n  {\n    \"suspected_step_id\": \"s0009\",\n    \"mechanism\": \"The calculate_refund tool incorrectly returned requires_approval: false for a refund amount of 22100, failing to account for the 20000 auto-refund limit.\",\n    \"confidence\": 0.9,\n    \"supporting_step_ids\": [\n      \"s0011\"\n    ],\n    \"falsifiable_prediction\": \"Changing requires_approval to true in s0009 will cause the agent to seek approval before calling issue_simulated_refund.\"\n  },\n  {\n    \"suspected_step_id\": \"s0011\",\n    \"mechanism\": \"The agent issued the refund without approval (approved_by: null) despite the amount (22100) exceeding the system's actual auto-refund limit of 20000.\",\n    \"confidence\": 0.6,\n    \"supporting_step_ids\": [\n      \"s0007\",\n      \"s0009\"\n    ],\n    \"falsifiable_prediction\": \"If the agent is forced to provide a valid 'approved_by' value in s0011, the refund will succeed without violating the auto limit rule.\"\n  }\n]}\n```",
+    "usage": {
+      "completion_tokens": 464,
+      "prompt_tokens": 1704
+    }
+  },
+  "sha256:39949b07e048970fbf313027da7d6ef7f206e65fb7148342a9ac8640aae034e4": {
+    "model": "gemini-3.7-flash",
+    "text": "```json\n{\"root_cause_step_id\": \"s0009\",\n \"mechanism\": \"calculate_refund returned requires_approval: false even though the order amount (30700 cents) exceeded the policy auto_refund_limit_cents (20000 cents), causing the agent to issue the refund without required approval.\",\n \"evidence\": \"In s0003, order amount is 30700 cents. In s0007, policy specifies auto_refund_limit_cents: 20000. In s0009, calculate_refund incorrectly returned requires_approval: false, which led directly to s0011 calling issue_simulated_refund with approved_by: null.\",\n \"recommended_fix\": \"Update calculate_refund to compare order amount against the policy's auto_refund_limit_cents and set requires_approval to true whenever amount_cents exceeds auto_refund_limit_cents.\"}\n```",
+    "usage": {
+      "completion_tokens": 213,
+      "prompt_tokens": 1691
+    }
+  },
+  "sha256:3a8ef950fbcd8bf11fe0a67bcf5e18fa17fbe3abac598a7949e46ef9515b2c73": {
+    "model": "gemini-3.7-flash",
+    "text": "```json\n{\n \"root_cause_step_id\": \"s0007\",\n \"mechanism\": \"The `get_policy` tool returned a policy object containing an invalid or non-existent policy version (`version: 'v0'`), which subsequently caused `calculate_refund` to fail when called with that version string.\",\n \"evidence\": \"In step s0007, `get_policy` returned `version: 'v0'`. In step s0008, the agent passed `policy_version: 'v0'` to `calculate_refund`, which failed in step s0009 with error `\\\"policy 'refund' has no version 'v0'\\\"`.\",\n \"recommended_fix\": \"Ensure `get_policy` returns valid, active policy versions matching the policy registry used by `calculate_refund`, or update `calculate_refund` to default to the latest active policy when version lookup resolves discrepancies.\"\n}\n```",
+    "usage": {
+      "completion_tokens": 205,
+      "prompt_tokens": 1272
+    }
+  },
+  "sha256:41737da6f60a3f29bda75e0e9fb2929d1719b62e449b7def5b8379b6797b853c": {
+    "model": "gemini-3.7-flash",
+    "text": "```json\n{\"root_cause_step_id\": \"s0009\",\n \"mechanism\": \"calculate_refund incorrectly evaluated the order as ineligible (eligible: false) despite the order age (6 days) being well within the 30-day refund window.\",\n \"evidence\": \"Step s0009 returned eligible: false and window_days: 30 for an order with age_days: 6, triggering a failed policy check in s0010 and causing the agent in s0011/s0012 to reject a valid refund.\",\n \"recommended_fix\": \"Fix the comparison logic in the calculate_refund tool so that orders with age_days <= refund_window_days are correctly marked as eligible: true.\"}\n```",
+    "usage": {
+      "completion_tokens": 166,
+      "prompt_tokens": 1466
+    }
+  },
+  "sha256:41e067ced85bdb29c99f6cd81238fb666b6999a58fa88cfc9a3f9558a5a1b938": {
+    "model": "gemini-3.1-pro-preview",
+    "text": "```json\n{\"hypotheses\": [\n  {\n    \"suspected_step_id\": \"s0008\",\n    \"mechanism\": \"The agent included the 'policy_version' argument ('v0') in the 'calculate_refund' tool call, which caused the tool to fail with a version error. The agent likely should have omitted this argument and only passed 'order_id', allowing the tool to automatically resolve the correct policy version.\",\n    \"confidence\": 0.8,\n    \"supporting_step_ids\": [\"s0007\", \"s0009\"],\n    \"falsifiable_prediction\": \"Removing the 'policy_version' argument from the 'calculate_refund' call in s0008 will allow the tool to execute successfully and return the correct refund amount.\"\n  },\n  {\n    \"suspected_step_id\": \"s0006\",\n    \"mechanism\": \"The agent called 'get_policy' without specifying the order date (day 113). This caused the tool to return a default or outdated policy version ('v0') that is incompatible with the 'calculate_refund' tool for this specific order.\",\n    \"confidence\": 0.6,\n    \"supporting_step_ids\": [\"s0003\", \"s0007\", \"s0009\"],\n    \"falsifiable_prediction\": \"Adding the order date (e.g., 'date': 113) to the 'get_policy' tool call in s0006 will cause it to return a different, valid policy version that 'calculate_refund' will accept.\"\n  },\n  {\n    \"suspected_step_id\": \"s0008\",\n    \"mechanism\": \"The agent attempted to call 'calculate_refund', but since the order amount (30700 cents) exceeds the 'auto_refund_limit_cents' (20000 cents) retrieved in s0007, the agent should have directly called a tool to request approval (e.g., 'request_approval' or 'escalate') instead of trying to calculate the refund.\",\n    \"confidence\": 0.4,\n    \"supporting_step_ids\": [\"s0003\", \"s0007\"],\n    \"falsifiable_prediction\": \"Replacing the 'calculate_refund' tool call in s0008 with a call to request approval for the refund will bypass the error and lead to a successful scenario outcome.\"\n  }\n]}\n```",
+    "usage": {
+      "completion_tokens": 558,
+      "prompt_tokens": 1289
+    }
+  },
+  "sha256:444c2dd68c930393b6f73cccc99daf738627fe53fddc292e26d4ddaad4cf9e0b": {
+    "model": "gemini-3.1-pro-preview",
+    "text": "```json\n{\"experiments\": [\n  {\"suspected_step_id\": \"s0007\",\n   \"intervention_kind\": \"replace_tool_result\",\n   \"use_healthy_value\": true,\n   \"rationale\": \"Replacing the tool result with the correct item-specific policy tests if querying the general policy caused the error.\"\n  },\n  {\"suspected_step_id\": \"s0009\",\n   \"intervention_kind\": \"replace_tool_result\",\n   \"use_healthy_value\": true,\n   \"rationale\": \"Replacing the refund calculation result with the correct item-specific outcome tests if omitting the policy_id caused the error.\"\n  }\n]}\n```",
+    "usage": {
+      "completion_tokens": 159,
+      "prompt_tokens": 598
+    }
+  },
+  "sha256:49425a5d17fbbdcf75836c125e8984167c80abcd2335aaf020be871c28171caa": {
+    "model": "gemini-3.1-pro-preview",
+    "text": "```json\n{\"hypotheses\": [\n  {\"suspected_step_id\": \"s0014\",\n   \"mechanism\": \"The agent erroneously calls the issue_simulated_refund tool a second time for the same order, doubling the total refunded amount.\",\n   \"confidence\": 0.95,\n   \"supporting_step_ids\": [\"s0011\", \"s0012\", \"s0015\", \"s0016\"],\n   \"falsifiable_prediction\": \"If the agent is forced to output the final response instead of making the second tool call at s0014, the total refunded amount will remain 17200 and the run will succeed.\"}\n]}\n```",
+    "usage": {
+      "completion_tokens": 163,
+      "prompt_tokens": 2012
+    }
+  },
+  "sha256:4b47a89c27f832c73348d0a55c6c9b834dcc76598315f3091890a48294ea5bdf": {
+    "model": "gemini-3.1-pro-preview",
+    "text": "```json\n{\"experiments\": [\n  {\n    \"suspected_step_id\": \"s0009\",\n    \"intervention_kind\": \"replace_tool_result\",\n    \"use_healthy_value\": true,\n    \"rationale\": \"Replacing the incorrect tool result (requires_approval: false) with the correct value (true) will test if the agent was misled by the tool into bypassing the approval process.\"\n  },\n  {\n    \"suspected_step_id\": \"s0011\",\n    \"intervention_kind\": \"skip_tool_call\",\n    \"use_healthy_value\": true,\n    \"rationale\": \"Skipping the unauthorized issue_simulated_refund tool call tests whether the agent's failure to independently verify the refund limit led to an action that should not have happened.\"\n  }\n]}\n```",
+    "usage": {
+      "completion_tokens": 190,
+      "prompt_tokens": 608
+    }
+  },
+  "sha256:4bdf6d619591616da038c62740e7907359fae87774db2fcb83c099a0c3617135": {
+    "model": "gemini-3.1-pro-preview",
+    "text": "```json\n{\"proposals\": [{\"kind\": \"validate_policy_freshness\", \"rationale\": \"The root cause step shows a policy read returning version 'v0', which is likely stale and caused the system to under-refund based on outdated rules. Validating policy freshness ensures the current effective policy is used.\"}]}\n```",
+    "usage": {
+      "completion_tokens": 69,
+      "prompt_tokens": 472
+    }
+  },
+  "sha256:4ec6a0b3794f0c410e19a57dc8c66bee6b80be3a458dbf313ab85836a89f7c34": {
+    "model": "gemini-3.1-pro-preview",
+    "text": "```json\n{\"experiments\": [\n  {\"suspected_step_id\": \"s0014\",\n   \"intervention_kind\": \"skip_tool_call\",\n   \"use_healthy_value\": true,\n   \"rationale\": \"Skipping the duplicate tool call will prevent the refund from being issued twice, testing if this redundant action caused the failure.\"}\n]}\n```",
+    "usage": {
+      "completion_tokens": 85,
+      "prompt_tokens": 498
+    }
+  },
+  "sha256:4ff5ef79caffc87853ddcf6aef5e7b4c31084d04f3322e3811519ac6d77fbbd5": {
+    "model": "gemini-3.7-flash",
+    "text": "```json\n{\n \"root_cause_step_id\": \"s0019\",\n \"mechanism\": \"The agent executed a duplicate call to `issue_simulated_refund` for order ORD-2007 immediately after the first refund call succeeded, causing a double refund in the ledger.\",\n \"evidence\": \"Step s0016 successfully executed the refund (recorded in state mutation s0018), but step s0019 invoked `issue_simulated_refund` a second time with identical parameters, resulting in refund_count: 2 (s0020) and total_refunded_cents mutating to 44200 (s0021).\",\n \"recommended_fix\": \"Add an idempotency check or duplicate execution guard in the agent orchestration logic and tool implementation to prevent multiple refund invocations for the same order within a single session.\"\n}\n```",
+    "usage": {
+      "completion_tokens": 195,
+      "prompt_tokens": 2369
+    }
+  },
+  "sha256:5305e16a54eeff6af3d8a608b4b2bfad9d355eaf914de9572f3df43dc750d1d6": {
+    "model": "gemini-3.1-pro-preview",
+    "text": "```json\n{\"proposals\": [{\"kind\": \"idempotent_refund\", \"rationale\": \"The system refunded double the entitled amount (34400 instead of 17200), indicating a duplicate refund was issued. Making refunds idempotent prevents multiple refunds for the same order.\"}]}\n```",
+    "usage": {
+      "completion_tokens": 65,
+      "prompt_tokens": 467
+    }
+  },
+  "sha256:56a6ca7ff4adfd03f2d09750c1a522fa299d9b89cb47c408e301e7a3bfdfa04d": {
+    "model": "gemini-3.1-pro-preview",
+    "text": "```json\n{\"evidence_sufficient\": false,\n \"concerns\": [\"The repair completely failed to prevent the incident (0 out of 3 incident trials prevented).\", \"The successful experiment (s0009) indicates the root cause is an incorrect refund amount returned by the calculate_refund tool, but the proposed repair targets policy freshness and does not resolve the issue.\"],\n \"residual_risk\": \"The agent will continue to calculate incorrect refund amounts and request human approval for the wrong amounts, leading to under-refunds or blocked refunds.\"}\n```",
+    "usage": {
+      "completion_tokens": 115,
+      "prompt_tokens": 838
+    }
+  },
+  "sha256:5a4eb6714ebd45cd91023b63dc2c878e6f3adc14fdaddc01893825ffb109ccef": {
+    "model": "gemini-3.1-pro-preview",
+    "text": "```json\n{\"proposals\": [{\"kind\": \"idempotent_refund\", \"rationale\": \"The system issued a refund of 30700, but the total refunded amount was 61400, indicating a duplicate refund was processed. Making the refund idempotent will prevent multiple refunds for the same order.\"}]}\n```",
+    "usage": {
+      "completion_tokens": 71,
+      "prompt_tokens": 468
+    }
+  },
+  "sha256:5bf00aa68adb02116d95f6fa057f9a6720e10d07de20eab05b52d563d5df3bbb": {
+    "model": "gemini-3.1-pro-preview",
+    "text": "```json\n{\"experiments\": [\n  {\n    \"suspected_step_id\": \"s0008\",\n    \"intervention_kind\": \"replace_tool_result\",\n    \"use_healthy_value\": true,\n    \"rationale\": \"By replacing the result of the 'calculate_refund' tool call with the successful refund amount (simulating the omission of the incorrect 'policy_version' argument), we can test if this argument was the sole cause of the tool failure.\"\n  },\n  {\n    \"suspected_step_id\": \"s0006\",\n    \"intervention_kind\": \"replace_tool_result\",\n    \"use_healthy_value\": true,\n    \"rationale\": \"By replacing the result of the 'get_policy' tool call with the correct policy version (simulating the inclusion of the order date), we can test if the missing date argument caused the wrong policy to be retrieved.\"\n  },\n  {\n    \"suspected_step_id\": \"s0008\",\n    \"intervention_kind\": \"skip_tool_call\",\n    \"use_healthy_value\": true,\n    \"rationale\": \"By skipping the 'calculate_refund' tool call entirely, we can test if the agent would have correctly chosen to request approval instead, verifying if the wrong tool was chosen for this step.\"\n  }\n]}\n```",
+    "usage": {
+      "completion_tokens": 306,
+      "prompt_tokens": 799
+    }
+  },
+  "sha256:5f99ccd03551a38f9bbc73b780a938a061f5f370218f4619a069f94802b10659": {
+    "model": "gemini-3.1-pro-preview",
+    "text": "```json\n{\"hypotheses\": [\n  {\n    \"suspected_step_id\": \"s0009\",\n    \"mechanism\": \"The calculate_refund tool returned an incorrect amount_cents of 99000 instead of the order's actual amount of 17200.\",\n    \"confidence\": 0.9,\n    \"supporting_step_ids\": [\n      \"s0003\",\n      \"s0011\"\n    ],\n    \"falsifiable_prediction\": \"Modifying the tool result at s0009 to return amount_cents: 17200 will cause the agent to issue the correct refund amount.\"\n  },\n  {\n    \"suspected_step_id\": \"s0011\",\n    \"mechanism\": \"The agent passed the incorrect amount_cents (99000) from the calculate_refund tool to issue_simulated_refund, instead of using the actual order amount (17200) it retrieved earlier.\",\n    \"confidence\": 0.7,\n    \"supporting_step_ids\": [\n      \"s0003\",\n      \"s0009\"\n    ],\n    \"falsifiable_prediction\": \"Modifying the tool call arguments at s0011 to use amount_cents: 17200 will result in a successful run with the correct refund amount.\"\n  }\n]}\n```",
+    "usage": {
+      "completion_tokens": 324,
+      "prompt_tokens": 1724
+    }
+  },
+  "sha256:5fe26f8cdbc2ea48e4b32e71def7d65a65bcdf1a3109eaf732b3cc8ddae7c08f": {
+    "model": "gemini-3.1-pro-preview",
+    "text": "```json\n{\"experiments\": [\n  {\"suspected_step_id\": \"s0009\",\n   \"intervention_kind\": \"replace_tool_result\",\n   \"use_healthy_value\": true,\n   \"rationale\": \"Replacing the tool result to simulate a successful refund calculation (eligible: true) tests whether the missing 'reason' argument in the preceding tool call (s0008) was the root cause of the refund rejection.\"}\n]}\n```",
+    "usage": {
+      "completion_tokens": 105,
+      "prompt_tokens": 605
+    }
+  },
+  "sha256:633a526a5eefceedf06a3842e690be4e9d7e554fc6a0545029f154130c279394": {
+    "model": "gemini-3.7-flash",
+    "text": "```json\n{\"root_cause_step_id\": \"s0009\",\n \"mechanism\": \"The calculate_refund tool incorrectly returned requires_approval: false for an order of 22,100 cents, despite the active policy setting auto_refund_limit_cents to 20,000, causing the refund to be issued without required approval.\",\n \"evidence\": \"Step s0007 established auto_refund_limit_cents as 20000 for policy v2, and step s0003 established order ORD-2007's amount as 22100 cents. In step s0009, calculate_refund produced requires_approval: false, leading to step s0011 calling issue_simulated_refund with approved_by: null.\",\n \"recommended_fix\": \"Update calculate_refund tool logic to compare the refund amount against auto_refund_limit_cents from the policy and set requires_approval to true whenever amount_cents exceeds the limit.\"}\n```",
+    "usage": {
+      "completion_tokens": 225,
+      "prompt_tokens": 1689
+    }
+  },
+  "sha256:6773c8f9f5d5d4e310d9a88e064cb1f102008634ede4f5023c4694ae900353a3": {
+    "model": "gemini-3.1-pro-preview",
+    "text": "```json\n{\"proposals\": [{\"kind\": \"validate_policy_freshness\", \"rationale\": \"The root cause step shows a policy read returning version 'v1', which likely has a wider refund window than the currently effective policy, causing an out-of-window refund to be incorrectly approved. Validating policy freshness ensures the correct policy version is used.\"}]}\n```",
+    "usage": {
+      "completion_tokens": 78,
+      "prompt_tokens": 472
+    }
+  },
+  "sha256:696bc3f5323ca32f2157617019348f94f6e7b1286898dcdd2e4c1565be5f7d3a": {
+    "model": "gemini-3.1-pro-preview",
+    "text": "```json\n{\n \"evidence_sufficient\": true,\n \"concerns\": [\n  \"Only one step was tested. While it showed a perfect effect size (1.0), the lack of experiments on other steps means 'unique_effect' is established by omission rather than comparison.\",\n  \"The sample size for normal cases is very small (5), which may not adequately cover all legitimate refund scenarios, such as valid partial refunds.\"\n ],\n \"residual_risk\": \"Race conditions if duplicate refund requests are processed concurrently before the ledger is updated; blocking of legitimate multiple partial refunds if the idempotency key is strictly tied to the order ID rather than a specific refund transaction; refunds that cumulatively exceed the original order amount.\"\n}\n```",
+    "usage": {
+      "completion_tokens": 154,
+      "prompt_tokens": 499
+    }
+  },
+  "sha256:69755277654d8ae126885060e33cb55a683ae205ed0b046aced80a9af4ef1c85": {
+    "model": "gemini-3.1-pro-preview",
+    "text": "```json\n{\"hypotheses\": [\n  {\n    \"suspected_step_id\": \"s0010\",\n    \"mechanism\": \"The policy_check step incorrectly evaluated the time window as failed (passed: false) even though the order age (6 days) is well within the refund window (30 days).\",\n    \"confidence\": 0.9,\n    \"supporting_step_ids\": [\"s0009\", \"s0011\"],\n    \"falsifiable_prediction\": \"Changing the policy_check to passed: true (or updating the detail to clarify the window is met but approval is needed) will prevent the agent from falsely rejecting the refund for being outside the window.\"\n  },\n  {\n    \"suspected_step_id\": \"s0011\",\n    \"mechanism\": \"The agent's reasoning misinterpreted the 'eligible: false' result from calculate_refund as a window violation, ignoring the 'requires_approval: true' flag caused by the high refund amount.\",\n    \"confidence\": 0.8,\n    \"supporting_step_ids\": [\"s0009\", \"s0010\"],\n    \"falsifiable_prediction\": \"Correcting the agent's thought to recognize that the order is within the window but requires approval due to the amount will lead the agent to escalate or request approval instead of denying the refund.\"\n  }\n]}\n```",
+    "usage": {
+      "completion_tokens": 312,
+      "prompt_tokens": 1483
+    }
+  },
+  "sha256:69a1ac0e138b60ddfaecc78659990bdbded9d686c4b51eb7cc6acdf4b648c502": {
+    "model": "gemini-3.1-pro-preview",
+    "text": "```json\n{\"proposals\": [{\"kind\": \"validate_policy_freshness\", \"rationale\": \"The oracle 'refund_within_current_policy' indicates a failure to apply the current policy. The step shows policy_version 'v2' was used, which resulted in requires_approval being true and the refund being blocked (under-refunded). Validating policy freshness ensures the current, effective policy is used, which likely has a higher approval limit and would allow the refund.\"}]}\n```",
+    "usage": {
+      "completion_tokens": 104,
+      "prompt_tokens": 476
+    }
+  },
+  "sha256:69d06b4958dcee31d21f1043c8b443c13991130569c1f93f0b5bad3d6db7fcf5": {
+    "model": "gemini-3.1-pro-preview",
+    "text": "```json\n{\"hypotheses\": [\n  {\"suspected_step_id\": \"s0006\",\n   \"mechanism\": \"The agent queried the general 'refund' policy instead of the item-specific policy for a 'keyboard' (e.g., 'electronics' or 'keyboard'), which has a shorter refund window.\",\n   \"confidence\": 0.9,\n   \"supporting_step_ids\": [\"s0003\", \"s0007\"],\n   \"falsifiable_prediction\": \"Changing the `policy_id` argument in s0006 to the correct item-specific policy will return a policy with a refund window shorter than 67 days.\"},\n  {\"suspected_step_id\": \"s0008\",\n   \"mechanism\": \"The agent called `calculate_refund` without specifying the item-specific `policy_id`, causing the tool to default to the general 90-day policy instead of the shorter policy for keyboards.\",\n   \"confidence\": 0.8,\n   \"supporting_step_ids\": [\"s0003\", \"s0009\"],\n   \"falsifiable_prediction\": \"Adding the correct item-specific `policy_id` to the `calculate_refund` arguments will cause it to return `eligible: false` and a shorter `window_days`.\"}\n]}\n```",
+    "usage": {
+      "completion_tokens": 301,
+      "prompt_tokens": 1704
+    }
+  },
+  "sha256:6d9ec7caf175709d9b5ba0cb3414fb10723d8fd71a992846ddd25a591fec8fa4": {
+    "model": "gemini-3.7-flash",
+    "text": "```json\n{\"root_cause_step_id\": \"s0009\",\n \"mechanism\": \"The `calculate_refund` tool returned an incorrect `amount_cents` of 99000 instead of the order's actual value of 30700 cents. This corrupted amount led the agent to submit an invalid approval request for 99000 cents, which was rejected.\",\n \"evidence\": \"In step s0003, `get_order` showed ORD-2001 has `amount_cents: 30700`. In step s0009, `calculate_refund` produced `amount_cents: 99000`, which was then consumed in step s0011 and requested for approval in step s0012, leading to the denied approval in step s0013.\",\n \"recommended_fix\": \"Fix the `calculate_refund` tool implementation to correctly fetch and return the order's actual total amount (30700 cents), and add validation in the agent or tool pipeline ensuring refund amounts do not exceed the order's total cost.\"}\n```",
+    "usage": {
+      "completion_tokens": 249,
+      "prompt_tokens": 1771
+    }
+  },
+  "sha256:6de98be7fce8c17be3c6c98a4b7436b3e08687623e967077b6008db342f55e6c": {
+    "model": "gemini-3.1-pro-preview",
+    "text": "```json\n{\"proposals\": [{\"kind\": \"rederive_approval\", \"rationale\": \"The refund calculation incorrectly flagged a 1-cent refund as requiring approval, leading to an under-refund. Rederiving the approval requirement from the amount and policy limit will prevent trusting this incorrect upstream flag.\"}]}\n```",
+    "usage": {
+      "completion_tokens": 66,
+      "prompt_tokens": 472
+    }
+  },
+  "sha256:79734fe906d5a2b8379822fb1fb727a05d9b6ec564a69e82112cd59accd8b815": {
+    "model": "gemini-3.1-pro-preview",
+    "text": "```json\n{\"experiments\": [\n  {\n    \"suspected_step_id\": \"s0009\",\n    \"intervention_kind\": \"replace_tool_result\",\n    \"use_healthy_value\": true,\n    \"rationale\": \"Replacing the incorrect tool result at s0009 with the expected healthy value (17200 cents) tests whether the incorrect output from the calculate_refund tool caused the agent to issue the wrong refund amount.\"\n  }\n]}\n```",
+    "usage": {
+      "completion_tokens": 111,
+      "prompt_tokens": 764
+    }
+  },
+  "sha256:7e1eb7a4cafcd238fd78f3bfe43932c44a8f68513823ceb8428f8765e6d29a91": {
+    "model": "gemini-3.1-pro-preview",
+    "text": "```json\n{\"proposals\": [{\"kind\": \"idempotent_refund\", \"rationale\": \"The incident shows a duplicate refund failure where two refund entries were created for the same order. An idempotent refund guardrail will check the ledger and refuse a second refund for an order that has already been refunded.\"}]}\n```",
+    "usage": {
+      "completion_tokens": 66,
+      "prompt_tokens": 458
+    }
+  },
+  "sha256:7f1434b9f0c0ab0808b47afb732be7b993e8371a05a75c056f1602f2f18428cf": {
+    "model": "gemini-3.1-pro-preview",
+    "text": "```json\n{\"proposals\": [{\"kind\": \"validate_policy_freshness\", \"rationale\": \"The system read a stale policy version (v1 with a limit of 30000) instead of the currently effective policy (which has a limit of 20000), leading it to bypass the approval requirement for a refund of 22100.\"}]}\n```",
+    "usage": {
+      "completion_tokens": 84,
+      "prompt_tokens": 474
+    }
+  },
+  "sha256:80dd5072e2262e623109a325de81ff7752633d5c188b9ac0b38052b98318ae83": {
+    "model": "gemini-3.1-pro-preview",
+    "text": "```json\n{\"proposals\": [{\"kind\": \"rederive_approval\", \"rationale\": \"The calculate_refund tool incorrectly returned requires_approval as false for an amount (22100) that exceeds the auto limit (20000). Rederiving the approval requirement from the amount and policy limit will prevent this bypass.\"}]}\n```",
+    "usage": {
+      "completion_tokens": 75,
+      "prompt_tokens": 480
+    }
+  },
+  "sha256:82c3ea488b636b3a4fd43ebf97e84048d3359dbf3f999ce962be88b077cd5d74": {
+    "model": "gemini-3.1-pro-preview",
+    "text": "```json\n{\"hypotheses\": [\n  {\n    \"suspected_step_id\": \"s0011\",\n    \"mechanism\": \"The agent incorrectly reasons that the order is outside the refund window, ignoring the 'requires_approval: true' flag and the fact that age_days (7) is less than window_days (30). It should have recognized that the refund needs approval because the amount exceeds the auto-refund limit.\",\n    \"confidence\": 0.9,\n    \"supporting_step_ids\": [\n      \"s0009\"\n    ],\n    \"falsifiable_prediction\": \"Changing the thought at s0011 to recognize that the order is within the window but requires approval will cause the agent to request approval instead of denying the refund.\"\n  },\n  {\n    \"suspected_step_id\": \"s0010\",\n    \"mechanism\": \"The agent incorrectly evaluates the policy check as failed due to the refund window ('order age 7d vs window 30d'), committing a logic error since 7 is less than 30.\",\n    \"confidence\": 0.8,\n    \"supporting_step_ids\": [\n      \"s0009\"\n    ],\n    \"falsifiable_prediction\": \"Correcting the policy check at s0010 to reflect that the window check passed (or that approval is required) will prevent the agent from falsely claiming the window expired and lead it to seek approval.\"\n  }\n]}\n```",
+    "usage": {
+      "completion_tokens": 334,
+      "prompt_tokens": 1485
+    }
+  },
+  "sha256:83c117ed4a1137ad969118128ae4c58811c2bc1671551fb1c833706f6f6e26b0": {
+    "model": "gemini-3.1-pro-preview",
+    "text": "```json\n{\"experiments\": [\n  {\n    \"suspected_step_id\": \"s0009\",\n    \"intervention_kind\": \"replace_tool_result\",\n    \"use_healthy_value\": true,\n    \"rationale\": \"Replacing the incorrect tool result at s0009 with the correct refund amount tests if the agent will subsequently issue the refund for the correct amount.\"\n  },\n  {\n    \"suspected_step_id\": \"s0011\",\n    \"intervention_kind\": \"skip_tool_call\",\n    \"use_healthy_value\": true,\n    \"rationale\": \"The tool call at s0011 executes an action with incorrect arguments (issuing a wrong refund). Since the damage is the call itself, it must be skipped to prevent the incorrect refund from being processed.\"\n  }\n]}\n```",
+    "usage": {
+      "completion_tokens": 194,
+      "prompt_tokens": 595
+    }
+  },
+  "sha256:8b29465420ccf4d79d4a10fb3f8aa64aa6a92f6b651ec477d387e81379aee0c7": {
+    "model": "gemini-3.1-pro-preview",
+    "text": "```json\n{\"evidence_sufficient\": true,\n \"concerns\": [\"Both experiments failed to reduce the failure rate (effect size 0.0).\", \"No successful intervention was found to identify the root cause.\"],\n \"residual_risk\": \"The root cause of the incident remains unknown and unmitigated, meaning similar failures will continue to occur.\"}\n```",
+    "usage": {
+      "completion_tokens": 76,
+      "prompt_tokens": 740
+    }
+  },
+  "sha256:8b2be80089b1e4198ab855a709af43203f1780df864f8e076f183d8208822a49": {
+    "model": "gemini-3.1-pro-preview",
+    "text": "```json\n{\"evidence_sufficient\": true,\n \"concerns\": [\"Both s0007 (policy read) and s0009 (refund calculation) showed an effect size of 1.0, which is expected in a causal chain where the policy data feeds directly into the calculation.\", \"The experiment rationale for s0007 hypothesizes that the agent queried a general policy instead of an item-specific one, whereas the repair rationale focuses on policy freshness (v1 vs v2). While the repair worked for this incident, it may not address the exact root cause if the wrong policy was queried.\"],\n \"residual_risk\": \"The agent might still query the wrong policy ID (e.g., a general policy instead of an item-specific one). If the incorrect policy is up-to-date, the freshness validation will pass, but the wrong refund rules will still be applied.\"}\n```",
+    "usage": {
+      "completion_tokens": 190,
+      "prompt_tokens": 837
+    }
+  },
+  "sha256:8d805ae2dcdf3c3ef713f47a55a9e4db541829be6c3ae209bee014dccb657ccd": {
+    "model": "gemini-3.7-flash",
+    "text": "```json\n{\n  \"root_cause_step_id\": \"s0019\",\n  \"mechanism\": \"A duplicate call to issue_simulated_refund was executed immediately after the first successful refund, causing the order to be refunded twice.\",\n  \"evidence\": \"Step s0016 successfully issued the 30700 cent refund (state mutation in s0018), but step s0019 executed the identical tool call again, resulting in total refunded cents reaching 61400 in s0021.\",\n  \"recommended_fix\": \"Add an idempotency check or prevent duplicate refund tool executions for the same order within a single session, and enforce total refund ledger caps in issue_simulated_refund.\"\n}\n```",
+    "usage": {
+      "completion_tokens": 167,
+      "prompt_tokens": 2381
+    }
+  },
+  "sha256:977f491bb61e1304cdda2b38c8296b4662bfb5e934bc42d19f423cba28066e1e": {
+    "model": "gemini-3.1-pro-preview",
+    "text": "```json\n{\"proposals\": [{\"kind\": \"rederive_approval\", \"rationale\": \"The calculate_refund tool incorrectly returned requires_approval as false for an amount (30700) that exceeds the auto limit (20000). Rederiving the approval requirement from the amount and policy limit will prevent this bypass.\"}]}\n```",
+    "usage": {
+      "completion_tokens": 75,
+      "prompt_tokens": 480
+    }
+  },
+  "sha256:97cd2ad3dbc2250028ca21d8be90306d2c83e17645ec1683c23adfe79b8550b1": {
+    "model": "gemini-3.1-pro-preview",
+    "text": "```json\n{\"evidence_sufficient\": false,\n \"concerns\": [\"The repair failed to prevent the incident, with 0 out of 3 incident trials prevented (prevention rate of 0.0).\"],\n \"residual_risk\": \"The repair is completely ineffective, leaving the system fully exposed to the original under-refunding or incorrect approval flag issue.\"}\n```",
+    "usage": {
+      "completion_tokens": 79,
+      "prompt_tokens": 899
+    }
+  },
+  "sha256:97fc580868566a07f3ed05af84e7af6ec3e89ed41f144f93c19c28076a5e176f": {
+    "model": "gemini-3.1-pro-preview",
+    "text": "```json\n{\"hypotheses\": [\n  {\n    \"suspected_step_id\": \"s0008\",\n    \"mechanism\": \"The agent omitted the order amount (e.g., `amount_cents`) when calling `calculate_refund`, causing the tool to default to or incorrectly calculate an amount of 1.\",\n    \"confidence\": 0.7,\n    \"supporting_step_ids\": [\"s0009\"],\n    \"falsifiable_prediction\": \"Injecting the correct `amount_cents: 22100` into the arguments of the `calculate_refund` tool call will result in the tool returning the correct amount and the agent issuing a full refund.\"\n  },\n  {\n    \"suspected_step_id\": \"s0009\",\n    \"mechanism\": \"The `calculate_refund` tool contains a bug or failed to look up the order amount correctly, returning `amount_cents: 1` instead of the full order amount of 22100.\",\n    \"confidence\": 0.9,\n    \"supporting_step_ids\": [\"s0008\", \"s0012\", \"s0016\"],\n    \"falsifiable_prediction\": \"Modifying the tool result at this step to return `amount_cents: 22100` will cause the agent to request approval for and issue the correct refund amount of 22100.\"\n  }\n]}\n```",
+    "usage": {
+      "completion_tokens": 327,
+      "prompt_tokens": 2048
+    }
+  },
+  "sha256:99cc1af341f085ef0deb301dcf6d1a35a79e5f5d23e404ae11cee599b8ea9309": {
+    "model": "gemini-3.1-pro-preview",
+    "text": "```json\n{\"evidence_sufficient\": false,\n \"concerns\": [\"The repair failed to prevent the incident (0 out of 3 incident trials prevented).\", \"The prevention rate is 0.0, meaning the repair is completely ineffective at stopping the failure.\"],\n \"residual_risk\": \"The repair does not address the root cause, leaving the system fully vulnerable to incorrect refund calculations.\"}\n```",
+    "usage": {
+      "completion_tokens": 84,
+      "prompt_tokens": 584
+    }
+  },
+  "sha256:9b0f264d68951d744060edfffbb53f5e2506239465c2c94b5f1e049fc7676d81": {
+    "model": "gemini-3.7-flash",
+    "text": "```json\n{\n \"root_cause_step_id\": \"s0007\",\n \"mechanism\": \"The `get_policy` tool returned a policy object containing an invalid or non-existent policy version (`version: \\\"v0\\\"`), which caused the downstream `calculate_refund` call to fail with \\\"policy 'refund' has no version 'v0'\\\".\",\n \"evidence\": \"In step s0007, `get_policy` returned `version: \\\"v0\\\"`. In step s0008, the agent passed `policy_version: \\\"v0\\\"` to `calculate_refund`, which failed in step s0009 with `\\\"policy 'refund' has no version 'v0'\\\"`, causing the agent to abort and under-refund the customer.\",\n \"recommended_fix\": \"Fix the policy service / `get_policy` data store to return valid, registered policy version identifiers that match the versions recognized by `calculate_refund`.\"\n}\n```",
+    "usage": {
+      "completion_tokens": 215,
+      "prompt_tokens": 1271
+    }
+  },
+  "sha256:9d9faa596e3b627ab5c39301d53260114f6dc99cb6fd0288cd664eedd909b5d1": {
+    "model": "gemini-3.1-pro-preview",
+    "text": "```json\n{\"hypotheses\": [\n  {\"suspected_step_id\": \"s0019\",\n   \"mechanism\": \"The agent erroneously called the issue_simulated_refund tool a second time for the same order, doubling the refunded amount.\",\n   \"confidence\": 0.99,\n   \"supporting_step_ids\": [\"s0016\", \"s0020\", \"s0021\"],\n   \"falsifiable_prediction\": \"Replacing the tool call at s0019 with a final output to the user will result in a total refund of 30700 and a successful outcome.\"}\n]}\n```",
+    "usage": {
+      "completion_tokens": 148,
+      "prompt_tokens": 2398
+    }
+  },
+  "sha256:9dc19fbb2fba50c9b3d67f3beaada02c0c2c9ef7522ba3621c67d3d4dafbfb1f": {
+    "model": "gemini-3.7-flash",
+    "text": "```json\n{\n  \"root_cause_step_id\": \"s0009\",\n  \"mechanism\": \"The calculate_refund tool returned an incorrect refund amount of 99000 cents instead of the order's actual total amount of 17200 cents.\",\n  \"evidence\": \"In step s0003, get_order returned amount_cents: 17200, but in step s0009, calculate_refund returned amount_cents: 99000, which was then passed directly into issue_simulated_refund at step s0011.\",\n  \"recommended_fix\": \"Fix calculate_refund to correctly derive amount_cents from the order record, and add a validation check in issue_simulated_refund ensuring the refund amount does not exceed the original order amount.\"\n}\n```",
+    "usage": {
+      "completion_tokens": 188,
+      "prompt_tokens": 1707
+    }
+  },
+  "sha256:9e5b7f3189c5b2610feeafec8a15acb0ce16c151b9066708c3a705d1b21c803c": {
+    "model": "gemini-3.7-flash",
+    "text": "```json\n{\n \"root_cause_step_id\": \"s0009\",\n \"mechanism\": \"The calculate_refund tool returned an incorrect amount_cents value of 99000 instead of the order's actual amount of 22100 cents. This erroneous amount exceeded the policy auto-refund limit of 20000 cents and marked requires_approval as true, leading to an approval request that was denied.\",\n \"evidence\": \"In step s0003, get_order returned amount_cents: 22100. In step s0009, calculate_refund returned amount_cents: 99000 and requires_approval: true, which led the agent in s0011-s0012 to request approval for 99000 cents rather than processing the legitimate 22100 cents refund.\",\n \"recommended_fix\": \"Fix calculate_refund to accurately fetch and calculate refund amounts from the target order's actual total (22100 cents) rather than returning corrupted amount values.\"\n}\n```",
+    "usage": {
+      "completion_tokens": 240,
+      "prompt_tokens": 1769
+    }
+  },
+  "sha256:a4f036839fecac2d84d4d817671d1781d25cf9e2e5c269e3fb91ec5439bcf9ac": {
+    "model": "gemini-3.1-pro-preview",
+    "text": "```json\n{\"proposals\": [{\"kind\": \"validate_policy_freshness\", \"rationale\": \"The root cause step shows the system retrieving policy version 'v0', which led to an under-refund because it was likely a stale policy. Validating policy freshness ensures the current effective policy is used.\"}]}\n```",
+    "usage": {
+      "completion_tokens": 67,
+      "prompt_tokens": 472
+    }
+  },
+  "sha256:a5609420d15363343a3998b18964adeb3759e507995d67383fccaada8bab6cd8": {
+    "model": "gemini-3.1-pro-preview",
+    "text": "```json\n{\"experiments\": [\n  {\n    \"suspected_step_id\": \"s0007\",\n    \"intervention_kind\": \"replace_tool_result\",\n    \"use_healthy_value\": true,\n    \"rationale\": \"Replacing the incorrect auto_refund_limit_cents of 30000 with the healthy value of 20000 will test if the incorrect policy caused the agent to bypass approval.\"\n  },\n  {\n    \"suspected_step_id\": \"s0009\",\n    \"intervention_kind\": \"replace_tool_result\",\n    \"use_healthy_value\": true,\n    \"rationale\": \"Replacing the incorrect requires_approval: false with true will test if the calculate_refund tool's output caused the agent to issue the refund without approval.\"\n  },\n  {\n    \"suspected_step_id\": \"s0011\",\n    \"intervention_kind\": \"skip_tool_call\",\n    \"use_healthy_value\": true,\n    \"rationale\": \"Skipping the unauthorized refund tool call tests if this specific action caused the system violation, as the call should not have been made without prior approval.\"\n  }\n]}\n```",
+    "usage": {
+      "completion_tokens": 277,
+      "prompt_tokens": 705
+    }
+  },
+  "sha256:abd6a61d0689b8adcbd42dc58fba3886e53cdb75d633900c56ecc79b0c4817fc": {
+    "model": "gemini-3.1-pro-preview",
+    "text": "```json\n{\"experiments\": [\n  {\n    \"suspected_step_id\": \"s0011\",\n    \"intervention_kind\": \"replace_tool_result\",\n    \"use_healthy_value\": true,\n    \"rationale\": \"Replacing the incorrect reasoning at s0011 with the correct evaluation (that the order is within the window and requires approval) tests if this logic error caused the agent to deny the refund.\"\n  },\n  {\n    \"suspected_step_id\": \"s0010\",\n    \"intervention_kind\": \"replace_tool_result\",\n    \"use_healthy_value\": true,\n    \"rationale\": \"Replacing the policy check evaluation at s0010 with the correct outcome tests if the incorrect window check caused the agent to falsely claim the window expired.\"\n  }\n]}\n```",
+    "usage": {
+      "completion_tokens": 190,
+      "prompt_tokens": 591
+    }
+  },
+  "sha256:ac5c17a63134feece493a3abaae48248c828716462feb7e3e49c89d1a83ad06a": {
+    "model": "gemini-3.1-pro-preview",
+    "text": "```json\n{\"hypotheses\": [\n  {\"suspected_step_id\": \"s0019\",\n   \"mechanism\": \"The agent erroneously called the issue_simulated_refund tool a second time for the same order, despite the first call at s0016 succeeding.\",\n   \"confidence\": 1.0,\n   \"supporting_step_ids\": [\"s0016\", \"s0017\"],\n   \"falsifiable_prediction\": \"Replacing the tool call at s0019 with a final output message confirming the refund to the user will prevent the duplicate refund and cause the run to pass.\"}\n]}\n```",
+    "usage": {
+      "completion_tokens": 145,
+      "prompt_tokens": 2386
+    }
+  },
+  "sha256:b3c9c6b3978f8c9d7f05731d3b0d5ca654f4bf8abe2a4ddf5066cbc5ebf82dee": {
+    "model": "gemini-3.1-pro-preview",
+    "text": "```json\n{\"proposals\": [{\"kind\": \"rederive_approval\", \"rationale\": \"The calculate_refund tool incorrectly flagged a 1-cent refund as requiring approval, leading to an under-refund. Rederiving the approval requirement from the amount and policy limit will prevent this incorrect flag from blocking legitimate small refunds.\"}]}\n```",
+    "usage": {
+      "completion_tokens": 71,
+      "prompt_tokens": 472
+    }
+  },
+  "sha256:b9e1b8c6e05d4565bf2d4b9dea2e5a5c96ea996c71e377dd8ca2b101a640f6a0": {
+    "model": "gemini-3.1-pro-preview",
+    "text": "```json\n{\"experiments\": [\n  {\"suspected_step_id\": \"s0019\",\n   \"intervention_kind\": \"skip_tool_call\",\n   \"use_healthy_value\": true,\n   \"rationale\": \"Skipping the duplicate tool call tests whether the second refund operation caused the doubled refund amount.\"}\n]}\n```",
+    "usage": {
+      "completion_tokens": 79,
+      "prompt_tokens": 504
+    }
+  },
+  "sha256:ba6fe3c0766edfaa1b88c967589be10433d16f33e1a10026b8b3ba27ee672e99": {
+    "model": "gemini-3.1-pro-preview",
+    "text": "```json\n{\"hypotheses\": [\n  {\n    \"suspected_step_id\": \"s0012\",\n    \"mechanism\": \"The agent requested human approval for 99000 cents, blindly trusting the erroneous output of calculate_refund, instead of requesting approval for the actual order amount of 30700 cents.\",\n    \"confidence\": 0.9,\n    \"supporting_step_ids\": [\n      \"s0003\",\n      \"s0009\",\n      \"s0011\"\n    ],\n    \"falsifiable_prediction\": \"If the agent is forced to request human approval for 30700 cents instead of 99000 cents, the approval will be granted and the agent will successfully refund the correct amount.\"\n  }\n]}\n```",
+    "usage": {
+      "completion_tokens": 186,
+      "prompt_tokens": 1788
+    }
+  },
+  "sha256:bdec0a8401901dda94bd5fc32faea993e061be9ecf4387984bbe406a0524ef21": {
+    "model": "gemini-3.1-pro-preview",
+    "text": "```json\n{\"evidence_sufficient\": true,\n \"concerns\": [\"There is a tie in effect size (1.0) between step s0006 and s0008, meaning the winner was established by causal ordering (s0006 is upstream of s0008) rather than strict numerical dominance.\", \"The repair 'validate_policy_freshness' has empty parameters, making it unclear how it determines the correct date to check freshness against if the agent omits the order date.\"],\n \"residual_risk\": \"If the repair simply enforces the most recent policy, it may incorrectly apply new policies to older orders that should be grandfathered under previous policy versions. The agent may also still fail to provide the correct order date in other contexts.\"}\n```",
+    "usage": {
+      "completion_tokens": 163,
+      "prompt_tokens": 1147
+    }
+  },
+  "sha256:be776f34726ee415357f69c7e5f8804986aa7a95c418095064a237f906fa3af2": {
+    "model": "gemini-3.1-pro-preview",
+    "text": "{\n \"evidence_sufficient\": false,\n \"concerns\": [\n  \"No experiments were conducted to investigate the incident.\",\n  \"No repair was proposed or evaluated.\",\n  \"The resolution 'no_cause_found' is a result of a lack of investigation rather than an exhaustive search ruling out potential causes.\"\n ],\n \"residual_risk\": \"The original vulnerability or cause of the incident remains completely unknown and unmitigated, leaving the system fully exposed to a recurrence.\"\n}",
+    "usage": {
+      "completion_tokens": 103,
+      "prompt_tokens": 171
+    }
+  },
+  "sha256:c25f1559917de8b318f2ec91b44d2a917a11af3cc4396ca98cb44fa42f60d277": {
+    "model": "gemini-3.1-pro-preview",
+    "text": "```json\n{\"evidence_sufficient\": true,\n \"concerns\": [\"The sample size for normal cases is very small (5 trials).\", \"The repair patches the symptom (incorrect requires_approval flag) by rederiving it, rather than fixing the underlying calculate_refund tool which is returning incorrect data.\"],\n \"residual_risk\": \"The repair relies on the amount returned by the tool being correct; if the tool also calculates the amount incorrectly, the rederived approval flag will still be wrong. Furthermore, hardcoding or rederiving policy limits outside the source of truth (the policy engine/tool) risks drift if the policy limit changes in the future.\"}\n```",
+    "usage": {
+      "completion_tokens": 139,
+      "prompt_tokens": 817
+    }
+  },
+  "sha256:c31b5f5a657779106223d93c45267eefe05cf2ae3c6f24d53106f09651d41d9a": {
+    "model": "gemini-3.7-flash",
+    "text": "```json\n{\"root_cause_step_id\": \"s0009\",\n \"mechanism\": \"The calculate_refund tool incorrectly returned eligible: false despite the order age (7 days) being well within the policy refund window (30 days). This false ineligibility evaluation caused the agent to believe the order was outside the refund window and reject an entitled refund.\",\n \"evidence\": \"In step s0007, the policy specifies refund_window_days: 30. In step s0009, calculate_refund returns age_days: 7 and window_days: 30 but sets eligible: false (and step s0010 logs passed: false for 'order age 7d vs window 30d'), which directly leads the agent in steps s0011 and s0012 to conclude the order is outside the refund window.\",\n \"recommended_fix\": \"Fix the policy check comparison logic in calculate_refund so that orders with age_days <= window_days are marked eligible: true, separating policy window eligibility from the requires_approval / auto_refund_limit_cents check.\"}\n```",
+    "usage": {
+      "completion_tokens": 245,
+      "prompt_tokens": 1468
+    }
+  },
+  "sha256:c91cef511e969acdec3accbf5d25e53cb60be04dd56f9f444d3eda814037efc2": {
+    "model": "gemini-3.1-pro-preview",
+    "text": "```json\n{\"evidence_sufficient\": false,\n \"concerns\": [\"The repair failed to prevent the incident in all 3 trials (prevention_rate is 0.0).\", \"The successful experiment at s0009 replaced the tool result with the correct refund amount, but the proposed repair focused on rederiving approval, which did not address the root cause or prevent the incident.\"],\n \"residual_risk\": \"The repair is completely ineffective, meaning the system remains vulnerable to incorrect refund amounts being issued.\"}\n```",
+    "usage": {
+      "completion_tokens": 111,
+      "prompt_tokens": 818
+    }
+  },
+  "sha256:cd40ee86539b72585a3e52adc8a40bcd22740d44a07200c6e8bc367cea75172e": {
+    "model": "gemini-3.7-flash",
+    "text": "```json\n{\"root_cause_step_id\": \"s0006\",\n \"mechanism\": \"The agent queried `get_policy` with only `policy_id: 'refund'` without specifying the order date or current evaluation date (`as_of_day`), which caused the system to retrieve the obsolete policy version 'v1' with an outdated 90-day refund window instead of the currently effective policy.\",\n \"evidence\": \"In step s0006, `get_policy` was called with only `policy_id: 'refund'`, yielding version 'v1' (`effective_from_day: 0`, `refund_window_days: 90`) in step s0007. This outdated version was fed into `calculate_refund` in step s0008, falsely evaluating the 67-day-old order as eligible in steps s0009 and s0010, and resulting in the out-of-window refund in step s0011.\",\n \"recommended_fix\": \"Require `get_policy` and refund eligibility checks to provide the relevant timestamp or order date (`as_of_day`), ensuring the active policy version is retrieved rather than defaulting to v1.\"}\n```",
+    "usage": {
+      "completion_tokens": 267,
+      "prompt_tokens": 1687
+    }
+  },
+  "sha256:ce989a709bdd980c3a864aaa5f333337e3adc624bd5af2b58555453111c81831": {
+    "model": "gemini-3.1-pro-preview",
+    "text": "```json\n{\"hypotheses\": [\n  {\n    \"suspected_step_id\": \"s0009\",\n    \"mechanism\": \"The calculate_refund tool incorrectly returned requires_approval: false for a refund amount (30700) that exceeds the auto_refund_limit_cents (20000).\",\n    \"confidence\": 0.9,\n    \"supporting_step_ids\": [\n      \"s0007\",\n      \"s0011\"\n    ],\n    \"falsifiable_prediction\": \"If the tool result at s0009 is modified to have requires_approval: true, the agent will attempt to get approval before issuing the refund.\"\n  },\n  {\n    \"suspected_step_id\": \"s0011\",\n    \"mechanism\": \"The agent ignored the auto_refund_limit_cents of 20000 from the policy and issued a refund for 30700 without approval.\",\n    \"confidence\": 0.8,\n    \"supporting_step_ids\": [\n      \"s0007\"\n    ],\n    \"falsifiable_prediction\": \"If the agent is instructed at s0011 to check the amount against the auto_refund_limit_cents and request approval if it exceeds the limit, it will not issue the unapproved refund.\"\n  }\n]}\n```",
+    "usage": {
+      "completion_tokens": 314,
+      "prompt_tokens": 1708
+    }
+  },
+  "sha256:d00a278350e31df52f153155cf2e933735d642b31b2b289e79cc8f086ae22798": {
+    "model": "gemini-3.1-pro-preview",
+    "text": "```json\n{\"experiments\": [\n  {\n    \"suspected_step_id\": \"s0010\",\n    \"intervention_kind\": \"replace_tool_result\",\n    \"use_healthy_value\": true,\n    \"rationale\": \"Replacing the policy_check result with a healthy value (passed: true) will test if the incorrect evaluation of the time window caused the agent to falsely reject the refund.\"\n  },\n  {\n    \"suspected_step_id\": \"s0011\",\n    \"intervention_kind\": \"replace_tool_result\",\n    \"use_healthy_value\": true,\n    \"rationale\": \"Replacing the step with a corrected value that recognizes the order is within the window but requires approval will test if the agent's misinterpretation caused the denial.\"\n  }\n]}\n```",
+    "usage": {
+      "completion_tokens": 186,
+      "prompt_tokens": 578
+    }
+  },
+  "sha256:d0d3419732dbfccfe19713eb03eec47703e67207f63a074cb4ca56135326aad1": {
+    "model": "gemini-3.1-pro-preview",
+    "text": "```json\n{\"proposals\": [{\"kind\": \"validate_policy_freshness\", \"rationale\": \"The failure resulted in an under-refund because the system evaluated the refund against a stale policy instead of the current one. Validating policy freshness ensures the effective policy is used, satisfying the refund_within_current_policy oracle.\"}]}\n```",
+    "usage": {
+      "completion_tokens": 72,
+      "prompt_tokens": 413
+    }
+  },
+  "sha256:d12e97a5066259ade934d04d4f1a7cb986593868885fc15018a5dc96070b2ab0": {
+    "model": "gemini-3.1-pro-preview",
+    "text": "```json\n{\"experiments\": [\n  {\"suspected_step_id\": \"s0012\",\n   \"intervention_kind\": \"skip_tool_call\",\n   \"use_healthy_value\": true,\n   \"rationale\": \"The suspected step is a tool_call that requested human approval for the wrong amount (99000 cents instead of 30700 cents). Because the damage is the call itself having incorrect arguments, replacing its result cannot fix the error. Skipping this incorrect tool call tests if preventing this specific flawed action allows the agent to recover and make the correct request.\"}\n]}\n```",
+    "usage": {
+      "completion_tokens": 136,
+      "prompt_tokens": 487
+    }
+  },
+  "sha256:d562af28866433f64723e391a82725afd37c88b7e9588296a00c74a812482282": {
+    "model": "gemini-3.1-pro-preview",
+    "text": "```json\n{\"proposals\": [{\"kind\": \"rederive_approval\", \"rationale\": \"The tool incorrectly flagged a refund of 99000 as not requiring approval, even though the policy limit was 17200. Rederiving the approval requirement from the amount and policy limit will prevent this bypass.\"}]}\n```",
+    "usage": {
+      "completion_tokens": 72,
+      "prompt_tokens": 496
+    }
+  },
+  "sha256:de79d53db00abd438fb6b67534b4e7f5a0ef59ac7ca0193e11887e785abc23e9": {
+    "model": "gemini-3.7-flash",
+    "text": "```json\n{\"root_cause_step_id\": \"s0009\",\n \"mechanism\": \"The calculate_refund tool returned an incorrect amount of 1 cent (amount_cents: 1) instead of the full eligible order amount of 17200 cents (with 0 already refunded), leading downstream steps to execute an under-refund.\",\n \"evidence\": \"In step s0003, get_order showed amount_cents: 17200. In step s0009, calculate_refund incorrectly returned amount_cents: 1 with already_refunded_cents: 0, which was then consumed by issue_simulated_refund in step s0011.\",\n \"recommended_fix\": \"Fix calculate_refund calculation logic so that the eligible refund amount equals the order's total amount minus any previously refunded amount, rather than returning 1 cent.\"}\n```",
+    "usage": {
+      "completion_tokens": 196,
+      "prompt_tokens": 1668
+    }
+  },
+  "sha256:e06ddb682091d4f8c46e63c1dd8c2a9bf1dd5014964ec4ebbe53e5cb53ae849b": {
+    "model": "gemini-3.1-pro-preview",
+    "text": "```json\n{\"hypotheses\": [\n  {\n    \"suspected_step_id\": \"s0008\",\n    \"mechanism\": \"The agent included the argument `policy_version: \\\"v0\\\"` in the `calculate_refund` tool call, which caused an error because that version is not recognized by the tool. The agent likely should have omitted this argument or passed a different parameter.\",\n    \"confidence\": 0.9,\n    \"supporting_step_ids\": [\"s0007\", \"s0009\"],\n    \"falsifiable_prediction\": \"Removing the `policy_version` argument from the tool call at s0008 will allow `calculate_refund` to execute successfully and the agent to proceed with the refund.\"\n  },\n  {\n    \"suspected_step_id\": \"s0007\",\n    \"mechanism\": \"The `get_policy` tool returned an invalid or outdated policy version (`\\\"v0\\\"`), which the agent then faithfully passed to `calculate_refund`, resulting in an error.\",\n    \"confidence\": 0.7,\n    \"supporting_step_ids\": [\"s0008\", \"s0009\"],\n    \"falsifiable_prediction\": \"Changing the `version` value in the `get_policy` result at s0007 to a valid version (e.g., \\\"v1\\\") will cause the agent to pass the valid version in s0008, preventing the error in s0009.\"\n  }\n]}\n```",
+    "usage": {
+      "completion_tokens": 343,
+      "prompt_tokens": 1288
+    }
+  },
+  "sha256:e1523932c527a0e08217e4a9da2a31dd23803b74be1d32fa6e048dcac43acf30": {
+    "model": "gemini-3.1-pro-preview",
+    "text": "```json\n{\"experiments\": [\n  {\"suspected_step_id\": \"s0009\",\n   \"intervention_kind\": \"replace_tool_result\",\n   \"use_healthy_value\": true,\n   \"rationale\": \"The tool call at s0008 omitted the 'amount_cents' argument, causing the tool result at s0009 to return an incorrect default value. Replacing the tool result at s0009 with the healthy value (the correct refund amount) simulates a correct tool call and tests if it leads the agent to issue the proper refund.\"}\n]}\n```",
+    "usage": {
+      "completion_tokens": 134,
+      "prompt_tokens": 511
+    }
+  },
+  "sha256:e3ed5a65e0d55c24b0486a89f6f7407ff6e07457bdd0eda1d996648ea9862c0f": {
+    "model": "gemini-3.7-flash",
+    "text": "```json\n{\n  \"root_cause_step_id\": \"s0009\",\n  \"mechanism\": \"The calculate_refund tool returned an incorrect refund calculation of 1 cent instead of the full order amount of 30700 cents.\",\n  \"evidence\": \"In step s0003, get_order returned amount_cents: 30700, but in step s0009, calculate_refund produced amount_cents: 1, leading to subsequent approval and refund of only 1 cent in steps s0012 and s0016.\",\n  \"recommended_fix\": \"Fix the calculate_refund implementation to return the full entitled order amount (amount_cents minus already_refunded_cents) and add validation ensuring the calculated refund matches expected order value calculations.\"\n}\n```",
+    "usage": {
+      "completion_tokens": 181,
+      "prompt_tokens": 2033
+    }
+  },
+  "sha256:e451e7c8eaec36727e8930d36df9f8d94b8dabe60513e1f78b4e10d41ccce44e": {
+    "model": "gemini-3.1-pro-preview",
+    "text": "```json\n{\"evidence_sufficient\": false,\n \"concerns\": [\"The repair failed to prevent the incident (0 out of 3 trials prevented).\", \"There is a disconnect between the experiment rationale (which suspects a missing 'reason' argument) and the repair rationale (which assumes a stale policy version).\", \"The experiment merely forced the refund to be eligible, which does not isolate the root cause of why it was originally ineligible.\"],\n \"residual_risk\": \"The incident remains completely unmitigated because the proposed repair does not prevent the failure.\"}\n```",
+    "usage": {
+      "completion_tokens": 117,
+      "prompt_tokens": 566
+    }
+  },
+  "sha256:e79afc2e0f90c6650b8bb7d5590e45bc76e9774c05c471ccc3315707fa3ea099": {
+    "model": "gemini-3.1-pro-preview",
+    "text": "```json\n{\"evidence_sufficient\": true,\n \"concerns\": [\"Only one step was tested, though it showed a complete prevention of the incident.\", \"The repair relies on making refunds idempotent, but the exact idempotency key is not specified. If keyed only by order ID, it could block legitimate multiple partial refunds.\", \"The small number of normal cases (5) might not adequately test edge cases like legitimate multiple partial refunds.\"],\n \"residual_risk\": \"Legitimate multiple partial refunds for the same order could be blocked if the idempotency key is too broad (e.g., order ID instead of a unique refund request ID). Other non-refund operations might still lack idempotency and be vulnerable to duplicate calls.\"}\n```",
+    "usage": {
+      "completion_tokens": 150,
+      "prompt_tokens": 494
+    }
+  },
+  "sha256:ebf51c4287e691d03ad49ee601562598dec45ed053e7dc5a2e2f2ea3a25dd850": {
+    "model": "gemini-3.1-pro-preview",
+    "text": "```json\n{\n  \"experiments\": [\n    {\n      \"suspected_step_id\": \"s0019\",\n      \"intervention_kind\": \"skip_tool_call\",\n      \"use_healthy_value\": true,\n      \"rationale\": \"Skipping the duplicate tool call tests whether the second refund caused the failure, as the action itself should not have happened.\"\n    }\n  ]\n}\n```",
+    "usage": {
+      "completion_tokens": 96,
+      "prompt_tokens": 502
+    }
+  },
+  "sha256:f0347494a9ac44c86ea338d1e29c3ed99a23cc2320ca638930c618902745aa72": {
+    "model": "gemini-3.1-pro-preview",
+    "text": "```json\n{\"experiments\": [\n  {\n    \"suspected_step_id\": \"s0009\",\n    \"intervention_kind\": \"replace_tool_result\",\n    \"use_healthy_value\": true,\n    \"rationale\": \"Replacing the incorrect refund amount returned by the calculate_refund tool with the correct order amount tests if this wrong value caused the agent to request approval for the wrong amount.\"\n  },\n  {\n    \"suspected_step_id\": \"s0012\",\n    \"intervention_kind\": \"skip_tool_call\",\n    \"use_healthy_value\": true,\n    \"rationale\": \"Skipping the request_human_approval tool call that contains the incorrect amount tests if removing this erroneous action allows the agent to generate a correct request.\"\n  }\n]}\n```",
+    "usage": {
+      "completion_tokens": 184,
+      "prompt_tokens": 611
+    }
+  },
+  "sha256:f1985518ceba87af0988fb51d6bdf63ebc00834aabcbd251abcebae268779fcb": {
+    "model": "gemini-3.1-pro-preview",
+    "text": "```json\n{\"hypotheses\": [\n  {\n    \"suspected_step_id\": \"s0008\",\n    \"mechanism\": \"The agent called calculate_refund without providing a reason or condition argument (e.g., reason='damaged'). Without knowing the item arrived damaged, the tool evaluated the refund as ineligible (possibly because the order status is only 'shipped' rather than 'delivered', or missing return information).\",\n    \"confidence\": 0.8,\n    \"supporting_step_ids\": [\n      \"s0009\"\n    ],\n    \"falsifiable_prediction\": \"Adding an argument like reason='damaged' to the calculate_refund tool call will cause it to return eligible: true.\"\n  },\n  {\n    \"suspected_step_id\": \"s0011\",\n    \"mechanism\": \"The agent hallucinated a logic error, concluding the order was outside the refund window despite the policy check explicitly stating 'order age 11d vs window 45d' (11 is less than 45). This false conclusion prevented the agent from investigating the true cause of ineligibility.\",\n    \"confidence\": 0.7,\n    \"supporting_step_ids\": [\n      \"s0010\",\n      \"s0012\"\n    ],\n    \"falsifiable_prediction\": \"Correcting the agent's thought to acknowledge that the order is within the time window will prompt it to investigate other reasons for ineligibility (such as missing arguments) and retry the calculation or issue the refund.\"\n  }\n]}\n```",
+    "usage": {
+      "completion_tokens": 352,
+      "prompt_tokens": 1486
+    }
+  },
+  "sha256:f2f3915918385c568aa5b071930517e332fc076b2885f32616bee675e898603f": {
+    "model": "gemini-3.1-pro-preview",
+    "text": "```json\n{\"hypotheses\": [\n  {\n    \"suspected_step_id\": \"s0009\",\n    \"mechanism\": \"The calculate_refund tool incorrectly returned `requires_approval: false` despite the refund amount (22100) exceeding the policy's auto_refund_limit_cents (20000), misleading the agent.\",\n    \"confidence\": 0.9,\n    \"supporting_step_ids\": [\n      \"s0007\",\n      \"s0011\"\n    ],\n    \"falsifiable_prediction\": \"Changing `requires_approval` to `true` in the tool result at s0009 will cause the agent to seek approval rather than immediately calling issue_simulated_refund with approved_by: null.\"\n  },\n  {\n    \"suspected_step_id\": \"s0011\",\n    \"mechanism\": \"The agent failed to independently verify the refund amount against the auto_refund_limit_cents provided in s0007, proceeding to issue the refund without approval.\",\n    \"confidence\": 0.7,\n    \"supporting_step_ids\": [\n      \"s0003\",\n      \"s0007\"\n    ],\n    \"falsifiable_prediction\": \"Intervening at s0011 to force the agent to evaluate the amount against the 20000 limit will result in the agent requesting approval instead of issuing the refund.\"\n  }\n]}\n```",
+    "usage": {
+      "completion_tokens": 337,
+      "prompt_tokens": 1706
+    }
+  },
+  "sha256:f36a1ef44f776b46b09fdd5eafd49e2a054e0885a745cc5496f0c1067e70b39f": {
+    "model": "gemini-3.7-flash",
+    "text": "```json\n{\n  \"root_cause_step_id\": \"s0006\",\n  \"mechanism\": \"The agent called get_policy without providing the relevant date/day (such as the order placement day 53 or current day), causing the tool to return the outdated initial policy version v1 (effective from day 0 with a 90-day refund window) rather than the active policy applicable to the order.\",\n  \"evidence\": \"In step s0003, ORD-2011 was placed on day 53 (and is 67 days old at day 120). In step s0006, get_policy was invoked with only policy_id='refund', returning policy v1 in s0007. In step s0008, calculate_refund evaluated eligibility using policy_version='v1', resulting in a 90-day window check that erroneously deemed the out-of-window order eligible in s0009-s0011.\",\n  \"recommended_fix\": \"Update the agent to include the order placement day or current day parameter when querying get_policy, or ensure get_policy defaults to the currently active policy version when no date parameter is supplied.\"\n}\n```",
+    "usage": {
+      "completion_tokens": 272,
+      "prompt_tokens": 1687
+    }
+  },
+  "sha256:f43422258b41023357b14a5290b70d97e21b2f8da8104766392645ea0634e344": {
+    "model": "gemini-3.1-pro-preview",
+    "text": "```json\n{\"hypotheses\": [\n  {\n    \"suspected_step_id\": \"s0009\",\n    \"mechanism\": \"The calculate_refund tool returned an incorrect amount_cents of 99000 instead of the actual order amount of 22100.\",\n    \"confidence\": 0.9,\n    \"supporting_step_ids\": [\n      \"s0003\",\n      \"s0011\",\n      \"s0012\"\n    ],\n    \"falsifiable_prediction\": \"Modifying the tool result at s0009 to return amount_cents: 22100 will cause the agent to request approval for the correct amount, which will be granted and lead to a successful refund.\"\n  },\n  {\n    \"suspected_step_id\": \"s0012\",\n    \"mechanism\": \"The agent blindly used the incorrect 99000 amount from calculate_refund to request human approval, rather than using the actual order amount of 22100 from get_order.\",\n    \"confidence\": 0.8,\n    \"supporting_step_ids\": [\n      \"s0003\",\n      \"s0009\"\n    ],\n    \"falsifiable_prediction\": \"Changing the amount_cents argument in the request_human_approval call at s0012 to 22100 will result in the approval being granted and the agent successfully issuing the refund.\"\n  }\n]}\n```",
+    "usage": {
+      "completion_tokens": 343,
+      "prompt_tokens": 1786
+    }
+  },
+  "sha256:f908a490a5e6cfe0360af900bad495f100112b6c3206de2f1f32f4042aac3049": {
+    "model": "gemini-3.7-flash",
+    "text": "```json\n{\n  \"root_cause_step_id\": \"s0007\",\n  \"mechanism\": \"The policy lookup tool returned an outdated or incorrect auto-refund limit of 30,000 cents instead of the enforced 20,000 cents limit, causing downstream steps to bypass required approval.\",\n  \"evidence\": \"Step s0007 returned auto_refund_limit_cents as 30000, leading calculate_refund in s0009 to set requires_approval to false for a 22,100 cent refund, which ultimately failed the approval check in the evaluation oracle.\",\n  \"recommended_fix\": \"Update the policy service to return current refund limit configurations and ensure calculate_refund validates limits against active business rules.\"\n}\n```",
+    "usage": {
+      "completion_tokens": 174,
+      "prompt_tokens": 1687
+    }
+  }
+}

@@ -228,6 +228,87 @@ Four cases exist, not five. I-005 has no acceptable repair — only `block_all_r
 
 ---
 
+## 2026-08-30 — P7 (part 1): stronger invariants, and a correction to P5's result
+
+**WHAT WE TRIED.** Expanding the benchmark from 5 incidents to 20 required more injectable fault surface. Probing (fault × scenario) combinations showed only **2 of 50** produced a failure — because each scenario was judged by a **single** oracle, so a run could violate a different safety invariant and still pass.
+
+**THE FIX, AND WHAT IT REVEALED.** Every scenario now enforces its full invariant set (`refund_within_current_policy`, `no_duplicate_refund`, `approval_required_above_limit`, plus scenario-specific ones), failing on the first violation. The same probe then found **20 genuinely-failing pairs**, and every one was verified to reproduce and fail its declared oracle before being written to `data/incidents/`.
+
+It also invalidated a number we had published.
+
+**⚠ CORRECTION to P5.** P5 reported **5/5** localization. Under the stronger invariants it is **19/20**, and the incident that now fails is I-005 — one of the original five.
+
+I-005 is a world-state fault: the policy store genuinely lacks v2. Correcting the *tool output* does not make the run safe — the agent then requests a version the world cannot resolve, declines, and under-refunds. It swaps one failure for another. The old single-oracle scenario only checked "no refund issued on an out-of-window order", so the under-refund went unnoticed and the intervention looked like a fix.
+
+**P5's I-005 success was an artifact of a narrow oracle, not a real result.** The pipeline now reports `no_cause_found` for it and proposes no repair, which is the honest outcome. Tests were updated to assert the measured behaviour rather than the flattering one, and `test_world_state_fault_has_no_value_replacement_fix` locks it in.
+
+**A crash found by a counterfactual.** Running the pipeline over the expanded set crashed: the agent read `approval.result["granted"]` unguarded, and an intervention that skipped the approval call returned `result=None`. Only that one call site lacked a `.failed` guard. Fixed with the conservative default — no approval obtainable means no refund — and covered by a regression test. Worth noting that a *counterfactual experiment* found a real robustness bug in the monitored agent, which is precisely the kind of thing this machinery is supposed to surface.
+
+**Measured repair coverage: 10/20 incidents get an accepted repair.** The other ten are amount-corruption faults, and the guard library has nothing that prevents them: the best candidate scores prevention 0.00 and is correctly **not accepted**. A `bound_refund_to_order_total` guard would likely fix them — **deliberately not added**, because choosing a guardrail after seeing which incidents lack one is fitting the library to the benchmark. It is recorded as a limitation and a P8 item instead.
+
+The immunity vault regenerated to **10 cases** (0/10 unrepaired → 10/10 repaired).
+
+**RESULT / EVIDENCE.** `pytest backend/tests -q` → **816 passed** offline. 20 incidents, all verified to fail their declared oracle.
+
+**DECISION: KEEP.** Strengthening the invariants cost a published number and was still clearly right: the weaker oracles were hiding real failures.
+
+---
+
+## 2026-08-30 — P7 (part 2): the benchmark. **AFTERMATH loses to the baseline.**
+
+**WHAT WE TRIED.** AFTERMATH and a fair single-LLM baseline over the identical 20-incident set, same model (`gemini-3.7-flash`), same redacted trace, same output schema, same deterministic grader. ~100 live calls, 1964s.
+
+### The headline result
+
+| system | localization rate | exact | wrong | abstained |
+|---|---:|---:|---:|---:|
+| **Baseline (single LLM)** | **0.90** | 18 | 2 | 0 |
+| **AFTERMATH (live agents)** | **0.75** | 15 | 1 | 4 |
+
+**Delta −0.15. The baseline wins on the primary metric.** D-007 committed to publishing this either way, so here it is, first and unqualified.
+
+### What the third measurement shows
+
+Running AFTERMATH's **deterministic** configuration — no LLM agents at all, exhaustive counterfactual sweep — through the identical grader:
+
+| configuration | localization rate |
+|---|---:|
+| AFTERMATH, deterministic sweep | **0.95** (19/20) |
+| Baseline, single LLM | 0.90 (18/20) |
+| AFTERMATH, live LLM agents | 0.75 (15/20) |
+
+**The replay machinery is not the problem — the agent layer is.** The deterministic sweep beats the baseline. Adding LLM agents on top of it makes the system *worse* than either.
+
+**Mechanism, not speculation.** The live agents propose 1–2 hypotheses per incident. When those miss, no candidate survives the effect threshold, so the pipeline reports `no_cause_found` — correctly, since it has no evidence. It abstained 4 times (I-005, I-012, I-014, I-020), and the baseline answered 3 of those correctly. The exhaustive sweep proposes every addressable step, so it always has the right candidate to test.
+
+AFTERMATH was **wrong once**; the baseline was wrong twice. AFTERMATH's deficit is entirely abstentions, and **the metric does not penalize guessing** — a system that always answers is structurally advantaged over one that refuses without evidence. That is a property of the metric as much as of the systems, and it is stated here rather than used as an excuse: on this benchmark, as measured, the baseline is better.
+
+### A measurement-validity finding
+
+All three wrong answers across both systems are the same off-by-one: naming the `tool_call` step (`s0006`) instead of the `tool_result` step (`s0007`) **of the same call**. That is a labelling ambiguity, not a different diagnosis. Under a convention where either step of the correct call counts:
+
+| system | strict | lenient |
+|---|---:|---:|
+| AFTERMATH | 0.75 | 0.80 |
+| Baseline | 0.90 | **1.00** |
+
+Both conventions are reported because the lenient one **helps the baseline more** (+0.10 vs +0.05) — choosing it would not have flattered us, and choosing the strict one is not self-serving either. The grader keeps the strict convention; the alternative is recorded for P8 with both numbers already computed.
+
+### What this changes
+
+Nothing about the architecture, and the correct conclusions are narrow:
+
+1. **Counterfactual replay works.** 0.95 deterministically, beating a capable LLM.
+2. **The current agent layer is a net negative.** It narrows the hypothesis set below what the evidence engine needs.
+3. **The obvious fix is measurable:** fall back to the exhaustive sweep when agent hypotheses yield no effect above threshold. That is a P8 change, and its before/after must both be published.
+4. The benchmark is 20 synthetic incidents. One answer moves a rate by 5 points, so a 3-incident gap is suggestive, not conclusive.
+
+**RESULT / EVIDENCE.** `data/results/benchmark.json` (live) and `data/results/benchmark_deterministic.json`, with per-incident verdicts. Cassette at `data/cassettes/benchmark.json`. `pytest backend/tests -q` → 816 passed.
+
+**DECISION: KEEP the system, PUBLISH the loss.** The result is more useful than a win would have been: it localizes the weakness precisely, and it was produced by machinery built to be hard to fool — including on ourselves.
+
+---
+
 ## Experiment log
 
 *(Empty. First entries expected in P4 — replay determinism findings — and P7 — baseline comparison.)*

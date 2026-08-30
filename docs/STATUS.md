@@ -5,7 +5,7 @@
 
 ---
 
-# Overall Completion: 68%
+# Overall Completion: 78%
 
 **Derivation.** Completion is the weighted sum of phase completion from `docs/PHASES.md`. It is never estimated by feel.
 
@@ -18,12 +18,12 @@
 | P4 Replay engine ⚠ | 14 | 100% | 14.0 |
 | P5 Minimal forensic pipeline (MVP) | 14 | 100% | 14.0 |
 | P6 Immunity Vault | 8 | 100% | 8.0 |
-| P7 Baseline & benchmark | 10 | 0% | 0.0 |
+| P7 Baseline & benchmark | 10 | 100% | 10.0 |
 | P8 Swarm expansion & agent-count study | 10 | 0% | 0.0 |
 | P9 Frontend | 8 | 0% | 0.0 |
 | P10 Hardening & demo | 4 | 0% | 0.0 |
 | P11 TEE vault *(optional, unweighted)* | 0 | 0% | 0.0 |
-| **Total** | **100** | | **68.0** |
+| **Total** | **100** | | **78.0** |
 
 Within a phase, % done = satisfied acceptance criteria ÷ total acceptance criteria for that phase.
 
@@ -31,11 +31,13 @@ Within a phase, % done = satisfied acceptance criteria ÷ total acceptance crite
 
 ## Current phase
 
-**P6 — Immunity Vault.** Complete. All 3 acceptance criteria verified. 4 regression cases committed; release gate reads **0/4 unrepaired → 4/4 repaired → 3/4 with a guard dropped**.
+**P7 — Fair baseline + benchmark.** Complete. All 5 acceptance criteria verified.
+
+**⚠ THE BASELINE WON: 0.90 vs 0.75 on the primary metric.** Published as measured (D-007). The informative part: AFTERMATH's *deterministic* configuration scores **0.95**, beating the baseline. The replay machinery works; the LLM agent layer is a net negative because it narrows the hypothesis set below what the evidence engine needs.
 
 ## Current objective
 
-Begin **P7 — Fair baseline + benchmark harness + real metrics**. This is the phase that decides whether AFTERMATH actually beats a plain LLM, and the result gets reported honestly either way.
+Begin **P8 — Swarm expansion + agent-count experiments**, now with a concrete, measured question to answer rather than an assumed one: does *any* agent configuration beat the exhaustive deterministic sweep (0.95)? The first change to test is falling back to the sweep when agent hypotheses yield no effect above threshold.
 
 ## Completed phases
 
@@ -45,7 +47,8 @@ Begin **P7 — Fair baseline + benchmark harness + real metrics**. This is the p
 - **P3** — injection framework (tool-result, world-state, retry layers), incident definition format + loader, **5 incidents** with injector-authored ground truth, normal-case set.
 - **P4** — deterministic replay engine, counterfactual interventions, N-trial experiment runner, effect-size ranking. Byte-identical strict replay verified; 4/5 correct root-cause localization under a strong (healthy-value) control.
 - **P5** — 4 runtime agents (investigator, planner, repair, verifier) + orchestrator; redaction; measurement-based cause/consequence separation (`replay/chain.py`); repair guard library with prevention **and** false-block evaluation. 5/5 localization deterministically and with live agents.
-- **P6** — regression cases with two-direction controls, immunity vault (4 cases committed), composable guard chains, suite runner and release gate. Reintroduced-bug detection verified.
+- **P6** — regression cases with two-direction controls, immunity vault, composable guard chains, suite runner and release gate. Reintroduced-bug detection verified.
+- **P7** — incident set 5→20 (all verified), scenarios enforce full invariant sets, fair single-LLM baseline (fairness review D-017), deterministic grader with near-miss handling, metrics from stored artifacts, live benchmark run. **Result: baseline 0.90, AFTERMATH-with-agents 0.75, AFTERMATH-deterministic 0.95.**
 
 ## Active tasks
 
@@ -57,15 +60,15 @@ Begin **P7 — Fair baseline + benchmark harness + real metrics**. This is the p
 
 ## Next tasks (in order)
 
-1. **P7.1** — single-LLM baseline: same trace, same output schema, competently written prompt, equivalent model. Fairness review recorded in DECISIONS.
-2. **P7.2** — deterministic grader comparing a diagnosis to injector ground truth, including near-miss and adjacent-step handling.
-3. **P7.3** — expand the incident set toward 15–20.
-4. **P7.4** — metrics over stored artifacts; commit cassettes so a benchmark run is reproducible from a clean clone.
-5. **P7.5** — benchmark report. **Publish the result even if AFTERMATH loses.**
+1. **P8.1** — fall back to the exhaustive sweep when agent hypotheses produce no effect above threshold. Publish before/after; this is the single measured weakness from P7.
+2. **P8.2** — investigator-count sweep (1/3/5/7) against the 0.95 deterministic ceiling, measuring accuracy, latency, and token cost.
+3. **P8.3** — add `bound_refund_to_order_total` to the guard library (deferred in P7 by D-019) and publish repair coverage before and after.
+4. **P8.4** — repair tournament with genuinely distinct strategies.
+5. **P8.5** — decide the production configuration on measurement; report a null result as a result.
 
 ## Failing tests
 
-None. **417 passed** offline (`pytest backend/tests -q`, ~1.9s), plus 5 opt-in `live` tests.
+None. **816 passed** offline (`pytest backend/tests -q`, ~5.2s), plus 5 opt-in `live` tests.
 
 ## Known bugs
 
@@ -74,11 +77,15 @@ None known.
 ## Technical debt
 
 - `benchmark/` is still an empty package stub.
-- **The immunity suite has 4 cases, not 5.** I-005 has no acceptable repair, so it cannot become one. Correct behaviour, asserted by test — do not force a case for it. The import-boundary guard is load-bearing for `replay/` and now also covers the deterministic chain and repair modules.
+- **The agent layer is a measured net negative** (0.75 vs 0.95 deterministic). Fix identified: fall back to the exhaustive sweep when agent hypotheses yield no effect. P8.1.
+- **All wrong answers across both systems are call-step vs result-step of the same call.** A labelling ambiguity, not a different diagnosis. Strict convention retained; the lenient alternative helps the baseline more (1.00 vs 0.80), and both numbers are published.
+- **The immunity suite has 10 cases, not 20.** Only 10 incidents have an accepted repair; the rest are amount-corruption faults the guard library does not cover (prevention 0.00, correctly unaccepted). A `bound_refund_to_order_total` guard would likely fix them — **deliberately not added in P7**, because choosing a guardrail after seeing which incidents lack one is fitting the library to the benchmark. P8 item.
+- **I-005 is not localizable and reports no cause.** Correcting the policy read swaps one failure for another (the agent then under-refunds). This corrects P5's reported 5/5 to 19/20 — the earlier success was an artifact of a narrow oracle. The import-boundary guard is load-bearing for `replay/` and now also covers the deterministic chain and repair modules.
 - **Repairs are selected from a fixed guard library, not synthesized.** The agent chooses a kind; Python applies and measures it. Keeps repairs executable, but narrows what "the agent proposes a repair" means.
 - **I-005 has no acceptable repair in the library.** A freshness check cannot fix a world that genuinely lacks the newer policy. Reported honestly (`repair_accepted: false`) rather than promoting the blocker.
 - **Live cassettes are gitignored**, so the live agent result is not reproducible from a clean clone. Committing benchmark cassettes is a P7 task.
 - **Live "unique effect" partly reflects narrower hypothesis sets**, not better discrimination: agents proposed 1–2 candidates, so ties often never formed.
+- **Scenarios now enforce full invariant sets.** Previously each was judged by one oracle, so a run could violate a different safety property and still pass. Strengthening this expanded the injectable fault surface from 2 to 20 viable incidents — and invalidated one published number (see CHANGELOG).
 - **Effect-size ties: partly resolved in P5.** `replay/chain.py` now separates cause from consequence by *measurement* (does correcting A normalize B?), resolving I-001 and I-004. I-005 remains unresolvable that way — a world-state fault — and its report is explicitly labelled `earliest_step_heuristic`. The heuristic still exists; it is now the labelled fallback rather than the default.
 - **The intervention vocabulary bounds what is findable.** I-002's fix is skipping a duplicated call, so no value-replacement experiment reaches it and `localize()` correctly returns `None`. With `SKIP_TOOL_CALL` it localizes at +1.00 — so the planner's choice of intervention *kind* is load-bearing, not incidental.
 - **Failure rates are 0.0 or 1.0 with zero variance**, because the agent's control flow is deterministic. Real agents will produce intermediate rates; `TrialSummary.distinct_traces` tracks trace variance so that shift is visible rather than silent.
@@ -91,7 +98,17 @@ None known.
 
 ## Benchmark status
 
-**Not started** (P7). 5 incidents with ground truth now exist (P3), but there is no baseline and no metrics. **No benchmark numbers exist anywhere in this repository, and none may be quoted until P7 produces stored artifacts.**
+**Run 2026-08-30.** 20 incidents, `gemini-3.7-flash`, identical set and grader for both systems.
+
+| configuration | localization | exact | wrong | abstained |
+|---|---:|---:|---:|---:|
+| AFTERMATH, deterministic sweep | **0.95** | 19 | 0 | 1 |
+| Baseline, single LLM | **0.90** | 18 | 2 | 0 |
+| AFTERMATH, live LLM agents | **0.75** | 15 | 1 | 4 |
+
+Artifacts: `data/results/benchmark.json`, `data/results/benchmark_deterministic.json`. Every number above is read from those files.
+
+**The baseline beats the agent pipeline.** AFTERMATH's deficit is entirely abstentions — it refuses to answer without evidence, and the metric does not penalize guessing. The deterministic configuration beating the baseline is what localizes the weakness to the agent layer.
 
 ## Runtime-agent status
 

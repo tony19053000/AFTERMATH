@@ -152,6 +152,18 @@ class Injector:
                     mutations=outcome.mutations,
                 )
 
+            case InjectionKind.OVERRIDE_RESULT_FIELD:
+                field = self.spec.params["field"]
+                value = self.spec.params["value"]
+                corrupted = dict(outcome.result or {})
+                if field not in corrupted:
+                    # Refuse to invent a field: that would be a different fault
+                    # from the one declared, and the incident would be mislabeled.
+                    return outcome
+                self._fire({"field": field, "original": corrupted[field], "forced": value})
+                corrupted[field] = value
+                return ToolOutcome(result=corrupted, mutations=outcome.mutations)
+
             case InjectionKind.MALFORMED_POLICY_OUTPUT:
                 # A mislabeled version rather than a missing field: downstream
                 # code then fails on a value it can see, which is the realistic

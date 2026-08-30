@@ -2,13 +2,11 @@
 
 **From Agent Incident to Verified Immunity.**
 
-> **Project status: P6 of 11 complete (68%). The full loop runs** — incident → evidenced cause → tested repair → permanent regression case.
+> **Project status: P7 of 11 complete (78%).** The full loop runs — incident → evidenced cause → tested repair → permanent regression case — and it has now been benchmarked against a fair single-LLM baseline.
 >
 > Root cause correctly localized in **5/5 seed incidents**, both on the deterministic path and against live agents (where **5/5 hypotheses were agent-proposed**, not fallback). Repairs are measured on prevention *and* on whether they break legitimate cases; 4/5 incidents get an accepted repair, and the fifth is reported as having none rather than being given a bad one. 386 tests, all offline.
 >
-> The release gate is real: against the unrepaired agent **0/4 cases pass**; with the guardrails **4/4**; drop one guardrail and the suite catches the returning bug. 417 tests, all offline.
->
-> Honest limits: one incident's cause still rests on a labelled heuristic rather than measurement; one incident has **no acceptable repair** and is reported as such rather than given a bad one; repairs are selected from a fixed guard library, not written by the model; and live cassettes are gitignored, so that result is not yet reproducible from a clean clone. There is **no baseline comparison yet** (P7) — until then, nothing here claims AFTERMATH beats a plain LLM.
+> **The baseline won the headline comparison, and that is published rather than buried.** See Benchmark results below. 816 tests, all offline.
 
 ---
 
@@ -74,11 +72,25 @@ Not a log summarizer. Not an observability dashboard. Not a multi-agent chat fra
 
 Python · FastAPI · deterministic replay engine · SQLite · pytest · React/Next.js frontend · Gemini API as the **initial, swappable** model provider behind an adapter. The monitored agent is a minimal custom loop rather than an agent framework — deterministic replay requires controlling every nondeterministic call, and a framework's own orchestration sits exactly where that control is needed ([D-004](docs/DECISIONS.md)). The monitored agent, the LLM provider, and the database are all replaceable by design — see [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
-## Evaluation (planned)
+## Benchmark results
 
-Primary metric: **correct root-cause localization rate** against ground truth recorded by the fault injector — never by a model.
+20 synthetic incidents, `gemini-3.7-flash`, identical incident set and identical deterministic grader for both systems. Primary metric: **exact root-cause localization** against ground truth recorded by the fault injector, never by a model. A near miss is reported but never counted as a success.
 
-Compared against a **fair baseline**: one capable LLM, the same incidents, an equivalent model, a competently written prompt, no replay and no swarm. The question is whether the *engineering system* helps, not whether a bigger model helps. Results will be reported honestly, including if AFTERMATH loses.
+| configuration | localization | exact | wrong | abstained |
+|---|---:|---:|---:|---:|
+| AFTERMATH — deterministic counterfactual sweep | **0.95** | 19 | 0 | 1 |
+| Baseline — one capable LLM, no replay | **0.90** | 18 | 2 | 0 |
+| AFTERMATH — with LLM forensic agents | **0.75** | 15 | 1 | 4 |
+
+**The baseline beat AFTERMATH's agent pipeline, 0.90 to 0.75.** That is the headline and it is not spun.
+
+The third row is what makes the result useful. AFTERMATH's *deterministic* configuration — counterfactual replay with an exhaustive candidate sweep and no LLM agents at all — scores **0.95** and beats the baseline. **The evidence machinery works; the current agent layer is a net negative**, because it proposes 1–2 hypotheses per incident and, when it misses, the pipeline has nothing to test and correctly reports *no cause found*.
+
+AFTERMATH was wrong once. The baseline was wrong twice. AFTERMATH's entire deficit is four abstentions — and **the metric does not penalize guessing**, which structurally favours a system that always answers over one that refuses without evidence. That is a property of the metric as much as of the systems, and it is noted rather than used as an excuse.
+
+Every number above is read from `data/results/`. The fairness review of the baseline prompt is [D-017](docs/DECISIONS.md); the reasoning for not tuning the guard library after seeing results is [D-019](docs/DECISIONS.md).
+
+**Limits.** 20 synthetic incidents: one answer moves a rate by 5 points, so a 3-incident gap is suggestive, not conclusive. Results demonstrate mechanism viability, not production accuracy.
 
 ## Quick start
 
@@ -88,7 +100,7 @@ The backend runs fully offline on a deterministic mock provider — no API key n
 uv venv --python 3.12 .venv
 uv pip install --python .venv/bin/python -e "backend[dev]"
 
-.venv/bin/python -m pytest backend/tests -q                 # 417 passed
+.venv/bin/python -m pytest backend/tests -q                 # 816 passed
 .venv/bin/python -m uvicorn aftermath.api.app:app --port 8000
 curl -s localhost:8000/health
 ```

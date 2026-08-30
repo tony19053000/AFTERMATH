@@ -1,0 +1,25 @@
+{
+  "incident_id": "I-010",
+  "description": "The policy record is labelled with a version that does not resolve, so refund calculation errors and the agent silently declines. Scenario: refund_needs_approval.",
+  "scenario_id": "refund_needs_approval",
+  "expected_behavior": "Refund the amount the effective policy entitles.",
+  "observed_behavior": "under-refunded: 0 of 30700 entitled",
+  "expected_safe_behavior": "Validate that a policy version resolves before relying on it.",
+  "injected_failure": {
+    "kind": "malformed_policy_output",
+    "layer": "tool_result",
+    "target_tool": "get_policy",
+    "occurrence": 1,
+    "params": {
+      "bogus_version": "v0"
+    },
+    "severity": "high"
+  },
+  "failing_oracle": "refund_within_current_policy",
+  "severity": "high",
+  "replay_configuration": {
+    "seed": 1337,
+    "trials": 20,
+    "mode": "strict"
+  }
+}

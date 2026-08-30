@@ -1,31 +1,55 @@
-"""Gemini provider.
+"""Gemini provider — a direct REST client.
 
-The only place a Gemini SDK may be imported. The SDK is an optional dependency
-(`pip install -e "backend[gemini]"`) so the default offline test suite does not
-require it, and the import is deferred to call time so merely importing this
-module never demands the package or a key.
+**Why not the vendor SDK.** `google-genai` was used first and hung
+indefinitely on ordinary requests: zero CPU, no error, no timeout honoured at
+the socket level, while the identical payload returned HTTP 200 in ~11s over
+plain HTTPS. A provider that can stall a benchmark run with no diagnostic is
+not acceptable in the one layer everything else depends on.
+
+This is ~60 lines of stdlib `urllib`. It adds no runtime dependency, gives
+exact control over timeouts and retries, and keeps D-006's promise that
+swapping providers touches one file. The SDK remains an optional extra for
+anyone who wants it.
+
+The API key is read from the environment and never logged, never echoed in an
+error message, and never persisted to an artifact.
 """
 
 from __future__ import annotations
 
+import json
 import os
+import time
+import urllib.error
+import urllib.request
+from typing import Any
 
 from aftermath.config import DEFAULT_MODEL
 from aftermath.llm.base import LLMError, LLMRequest, LLMResponse, TokenUsage
 
 API_KEY_ENV = "GEMINI_API_KEY"
+API_ROOT = "https://generativelanguage.googleapis.com/v1beta/models"
+
+# A stalled request must become an error, not an indefinite wait.
+REQUEST_TIMEOUT_SECONDS = 90.0
+# Transient 5xx responses are common enough on long runs that one should not end
+# a 20-incident benchmark. Bounded: a persistent failure still surfaces.
+MAX_ATTEMPTS = 3
+RETRY_BACKOFF_SECONDS = 2.0
+RETRYABLE_STATUS = frozenset({429, 500, 502, 503, 504})
 
 
 class GeminiProvider:
-    """Live Gemini access.
-
-    The API key is read from the environment and never logged, never echoed in an
-    error message, and never persisted to an artifact.
-    """
+    """Live Gemini access over the REST API."""
 
     name = "gemini"
 
-    def __init__(self, api_key: str | None = None, default_model: str = DEFAULT_MODEL) -> None:
+    def __init__(
+        self,
+        api_key: str | None = None,
+        default_model: str = DEFAULT_MODEL,
+        timeout_seconds: float = REQUEST_TIMEOUT_SECONDS,
+    ) -> None:
         key = api_key or os.environ.get(API_KEY_ENV)
         if not key:
             raise LLMError(
@@ -34,45 +58,79 @@ class GeminiProvider:
             )
         self._api_key = key
         self._default_model = default_model
-        self._client: object | None = None
-
-    def _get_client(self) -> object:
-        if self._client is None:
-            try:
-                from google import genai  # noqa: PLC0415 — deferred: optional dependency
-            except ImportError as exc:  # pragma: no cover - depends on optional extra
-                raise LLMError(
-                    'google-genai is not installed. Install with: pip install -e "backend[gemini]"'
-                ) from exc
-            self._client = genai.Client(api_key=self._api_key)
-        return self._client
+        self._timeout = timeout_seconds
 
     def complete(self, request: LLMRequest) -> LLMResponse:
-        client = self._get_client()
-        contents = request.prompt
-        config: dict[str, object] = {"temperature": request.temperature}
+        model = request.model or self._default_model
+        body: dict[str, Any] = {
+            "contents": [{"parts": [{"text": request.prompt}]}],
+            "generationConfig": {"temperature": request.temperature},
+        }
         if request.system:
-            config["system_instruction"] = request.system
+            body["system_instruction"] = {"parts": [{"text": request.system}]}
         if request.max_tokens:
-            config["max_output_tokens"] = request.max_tokens
+            body["generationConfig"]["maxOutputTokens"] = request.max_tokens
 
-        try:
-            result = client.models.generate_content(  # type: ignore[attr-defined]
-                model=request.model or self._default_model,
-                contents=contents,
-                config=config,
+        payload = self._post(model, body)
+        return self._to_response(payload, model)
+
+    def _post(self, model: str, body: dict[str, Any]) -> dict[str, Any]:
+        """POST with bounded retries.
+
+        Raises:
+            LLMError: on a non-retryable status, or after exhausting retries.
+                The key is never included in the message.
+        """
+        url = f"{API_ROOT}/{model}:generateContent"
+        data = json.dumps(body).encode("utf-8")
+        last: str = "unknown"
+
+        for attempt in range(1, MAX_ATTEMPTS + 1):
+            http_request = urllib.request.Request(  # noqa: S310 - fixed https endpoint
+                url,
+                data=data,
+                headers={
+                    "Content-Type": "application/json",
+                    "x-goog-api-key": self._api_key,
+                },
+                method="POST",
             )
-        except Exception as exc:  # noqa: BLE001 - normalize any SDK failure
-            # The key must never surface in an error path.
-            raise LLMError(f"Gemini request failed: {type(exc).__name__}") from exc
+            try:
+                with urllib.request.urlopen(  # noqa: S310 - fixed https endpoint
+                    http_request, timeout=self._timeout
+                ) as response:
+                    return json.loads(response.read().decode("utf-8"))
+            except urllib.error.HTTPError as exc:
+                last = f"HTTP {exc.code}"
+                if exc.code not in RETRYABLE_STATUS:
+                    raise LLMError(f"Gemini request rejected: {last}") from None
+            except (urllib.error.URLError, TimeoutError, OSError) as exc:
+                last = type(exc).__name__
+            except json.JSONDecodeError:
+                raise LLMError("Gemini returned a non-JSON body") from None
 
-        text = getattr(result, "text", None)
-        if text is None:
-            raise LLMError("Gemini returned no text content")
+            if attempt < MAX_ATTEMPTS:
+                time.sleep(RETRY_BACKOFF_SECONDS * attempt)
 
-        usage_meta = getattr(result, "usage_metadata", None)
-        usage = TokenUsage(
-            prompt_tokens=getattr(usage_meta, "prompt_token_count", 0) or 0,
-            completion_tokens=getattr(usage_meta, "candidates_token_count", 0) or 0,
+        raise LLMError(f"Gemini request failed after {MAX_ATTEMPTS} attempts: {last}")
+
+    @staticmethod
+    def _to_response(payload: dict[str, Any], model: str) -> LLMResponse:
+        try:
+            parts = payload["candidates"][0]["content"]["parts"]
+        except (KeyError, IndexError, TypeError):
+            raise LLMError("Gemini returned no candidate content") from None
+
+        text = "".join(part.get("text", "") for part in parts)
+        if not text:
+            raise LLMError("Gemini returned empty text")
+
+        usage = payload.get("usageMetadata") or {}
+        return LLMResponse(
+            text=text,
+            model=model,
+            usage=TokenUsage(
+                prompt_tokens=usage.get("promptTokenCount", 0) or 0,
+                completion_tokens=usage.get("candidatesTokenCount", 0) or 0,
+            ),
         )
-        return LLMResponse(text=text, model=request.model, usage=usage)
