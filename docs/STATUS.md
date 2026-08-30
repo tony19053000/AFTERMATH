@@ -1,7 +1,7 @@
 # AFTERMATH — Project Status
 
 **Last updated:** 2026-08-30
-**Last verified commit:** `235af15` — feat: P5 minimal forensic pipeline
+**Last verified commit:** `81f9594` — feat: P6 immunity vault
 
 ---
 
@@ -115,6 +115,6 @@ None known.
 - Repository: initialized, branch `main`.
 - Remote: **`origin` → https://github.com/tony19053000/AFTERMATH.git** ✅ configured 2026-08-30.
 - Remote was empty at first push (0 refs) — no pre-existing history was overwritten.
-- `main` tracks `origin/main`; pushed and verified at `235af15`.
+- `main` tracks `origin/main`; pushed and verified at `81f9594`.
 - Bootstrap commit: `c6825fb` ✅
 - Push policy: no force push, no history rewrite. Push only after a phase's Definition of Done is met.
